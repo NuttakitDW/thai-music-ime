@@ -24,3 +24,11 @@ npx vercel --prod        # production
 ```
 
 Or push to GitHub and connect the repo on https://vercel.com/new.
+
+## License
+
+[MIT](./LICENSE) © 2026 Nuttakit Kundum.
+
+Fork it, modify it, ship it — no permission needed. Attribution appreciated
+but not required beyond what the MIT license itself asks for (the copyright
+notice in copies / substantial portions of the software).
