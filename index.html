@@ -513,37 +513,6 @@ footer {
 </header>
 
 <main>
-  <!-- About -->
-  <section class="panel">
-    <h2>About</h2>
-    <h3>Thai-music Input Method Editor — what it is, why it works</h3>
-
-    <div class="about-content">
-      <p>
-        An <strong>Input Method Editor (IME)</strong> is software that
-        translates keystrokes into symbols a keyboard can't produce directly —
-        the same layer that lets you type Chinese (<em>nihao</em> → 你好),
-        Japanese (<em>konnichiwa</em> → こんにちは), or Vietnamese
-        (<em>tieengs Vieets</em> → tiếng Việt) on a standard keyboard.
-      </p>
-
-      <p>
-        Thai music notation has the same shape — notes (like phonemes),
-        octave markers (like diacritics), hierarchical grouping
-        (จังหวะ → ห้อง → วรรค → ท่อน), and parallel streams. ฆ้องวงใหญ่ is a
-        bimanual instrument; a keyboard is also bimanual. So we map them
-        one-to-one: typing left hand → <strong>มือซ้าย</strong>,
-        typing right → <strong>มือขวา</strong>, both together → a chord on
-        the same beat. Your typing hands literally <em>become</em> the
-        musician's hands, and touch-typing muscle memory transfers
-        directly — fast enough to capture music in real time, with audio
-        feedback as you write.
-      </p>
-    </div>
-  </section>
-
-  <div class="section-spacer"></div>
-
   <!-- Controls -->
   <section class="panel">
     <h2>Controls</h2>
@@ -586,9 +555,42 @@ footer {
       <div class="stat"><span class="label">มือขวา</span><span class="value" id="rightCount">0 notes</span></div>
       <div class="stat"><span class="label">มือซ้าย</span><span class="value" id="leftCount">0 notes</span></div>
     </div>
+  </section>
+
+  <div class="section-spacer"></div>
+
+  <!-- Gong stage -->
+  <section class="panel">
+    <h2>Instrument</h2>
+    <h3>ฆ้องวงใหญ่ · 16 gongs · เสียง 7 เสียง (Thai equidistant 7-tone, no semitones)</h3>
+    <div class="gong-stage" id="gong-stage">
+      <div class="player-mark">ผู้บรรเลง<br><span style="font-size:9px;letter-spacing:0.5px;text-transform:uppercase;">player</span></div>
+    </div>
+  </section>
+
+  <div class="section-spacer"></div>
+
+  <!-- Notation -->
+  <section class="panel">
+    <h2>Notation</h2>
+    <h3>ทางฆ้องวงใหญ่ · 4 จังหวะ ต่อ ห้อง</h3>
+    <div class="notation" id="notation"></div>
+    <div class="legend">
+      <div class="legend-item"><span class="legend-dot" style="background:var(--accent)"></span>เสียงต่ำ (low)</div>
+      <div class="legend-item"><span class="legend-dot" style="background:var(--green)"></span>เสียงกลาง (mid)</div>
+      <div class="legend-item"><span class="legend-dot" style="background:var(--gold)"></span>เสียงสูง (high)</div>
+      <div class="legend-item"><span class="legend-dot" style="background:var(--dim)"></span>หยุด (rest, −)</div>
+    </div>
+  </section>
+
+  <div class="section-spacer"></div>
+
+  <!-- Quick start + keyboard reference -->
+  <section class="panel">
+    <h2>Quick start</h2>
+    <h3>How to type Thai music notation</h3>
     <div class="help-text">
-      <strong>Quick start.</strong>
-      Make sure the <strong>Record</strong> slide-toggle is on. The cell with a blue pulsing outline in the grid below is the <em>cursor</em>. The hand you type with on the keyboard <em>is</em> the hand of the music: keys on the left side write into <strong>มือซ้าย</strong>, keys on the right write into <strong>มือขวา</strong>. Press the two sides together (within ~55 ms) for a two-hand chord at the same beat; the cursor advances once. (See the <strong>About</strong> panel above for what an Input Method Editor is and why this design works for Thai music notation.)
+      Make sure the <strong>Record</strong> slide-toggle is on. The cell with a blue pulsing outline in the notation grid is the <em>cursor</em>. The hand you type with on the keyboard <em>is</em> the hand of the music: keys on the left side write into <strong>มือซ้าย</strong>, keys on the right write into <strong>มือขวา</strong>. Press the two sides together (within ~55 ms) for a two-hand chord at the same beat; the cursor advances once. (See the <strong>About</strong> panel below for what an Input Method Editor is and why this design works for Thai music notation.)
       <br><br>
       <strong>Note keys — color-coded by finger:</strong>
       <div id="imeInfographic" class="ime-infographic"></div>
@@ -638,27 +640,32 @@ footer {
 
   <div class="section-spacer"></div>
 
-  <!-- Gong stage -->
+  <!-- About -->
   <section class="panel">
-    <h2>Instrument</h2>
-    <h3>ฆ้องวงใหญ่ · 16 gongs · เสียง 7 เสียง (Thai equidistant 7-tone, no semitones)</h3>
-    <div class="gong-stage" id="gong-stage">
-      <div class="player-mark">ผู้บรรเลง<br><span style="font-size:9px;letter-spacing:0.5px;text-transform:uppercase;">player</span></div>
-    </div>
-  </section>
+    <h2>About</h2>
+    <h3>Thai-music Input Method Editor — what it is, why it works</h3>
 
-  <div class="section-spacer"></div>
+    <div class="about-content">
+      <p>
+        An <strong>Input Method Editor (IME)</strong> is software that
+        translates keystrokes into symbols a keyboard can't produce directly —
+        the same layer that lets you type Chinese (<em>nihao</em> → 你好),
+        Japanese (<em>konnichiwa</em> → こんにちは), or Vietnamese
+        (<em>tieengs Vieets</em> → tiếng Việt) on a standard keyboard.
+      </p>
 
-  <!-- Notation -->
-  <section class="panel">
-    <h2>Notation</h2>
-    <h3>ทางฆ้องวงใหญ่ · 4 จังหวะ ต่อ ห้อง</h3>
-    <div class="notation" id="notation"></div>
-    <div class="legend">
-      <div class="legend-item"><span class="legend-dot" style="background:var(--accent)"></span>เสียงต่ำ (low)</div>
-      <div class="legend-item"><span class="legend-dot" style="background:var(--green)"></span>เสียงกลาง (mid)</div>
-      <div class="legend-item"><span class="legend-dot" style="background:var(--gold)"></span>เสียงสูง (high)</div>
-      <div class="legend-item"><span class="legend-dot" style="background:var(--dim)"></span>หยุด (rest, −)</div>
+      <p>
+        Thai music notation has the same shape — notes (like phonemes),
+        octave markers (like diacritics), hierarchical grouping
+        (จังหวะ → ห้อง → วรรค → ท่อน), and parallel streams. ฆ้องวงใหญ่ is a
+        bimanual instrument; a keyboard is also bimanual. So we map them
+        one-to-one: typing left hand → <strong>มือซ้าย</strong>,
+        typing right → <strong>มือขวา</strong>, both together → a chord on
+        the same beat. Your typing hands literally <em>become</em> the
+        musician's hands, and touch-typing muscle memory transfers
+        directly — fast enough to capture music in real time, with audio
+        feedback as you write.
+      </p>
     </div>
   </section>
 </main>
