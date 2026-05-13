@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ฆ้องวงใหญ่ — Khong Wong Yai</title>
+<style>
+:root {
+  --bg: #0a0e1a; --bg-2: #0f1424; --panel: #131826; --panel-2: #1a2030; --panel-3: #232b3f;
+  --border: #2a3245; --text: #e4e9f2; --muted: #7a8499; --dim: #4a5266;
+  --accent: #5b9eff; --green: #3fdf8e; --red: #ff5e7a; --yellow: #ffc857;
+  --purple: #bf8cff; --orange: #ff8c42; --gold: #ffd54a;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Sarabun", system-ui, sans-serif;
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(91,158,255,0.10), transparent 60%),
+    radial-gradient(ellipse at 80% 100%, rgba(191,140,255,0.10), transparent 60%),
+    var(--bg);
+  background-attachment: fixed;
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+header {
+  padding: 18px 28px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(10, 14, 26, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  position: sticky; top: 0; z-index: 20;
+}
+.title-row { display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap; }
+header h1 {
+  margin: 0; font-size: 22px; font-weight: 700;
+  background: linear-gradient(120deg, var(--accent), var(--purple) 60%, var(--gold));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  letter-spacing: -0.3px;
+}
+header .sub { color: var(--muted); font-size: 12px; }
+
+main { padding: 28px; max-width: 1200px; margin: 0 auto; }
+.section-spacer { height: 18px; }
+
+section.panel {
+  background: linear-gradient(180deg, var(--panel) 0%, var(--bg-2) 100%);
+  border: 1px solid var(--border); border-radius: 12px;
+  padding: 22px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.15);
+}
+section.panel h2 {
+  margin: 0 0 4px; font-size: 13px; font-weight: 700;
+  color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px;
+}
+section.panel h3 {
+  margin: 0 0 18px; font-size: 18px; font-weight: 600; color: var(--text);
+}
+
+/* Controls */
+.controls {
+  display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+}
+.control-group {
+  display: flex; gap: 8px; align-items: center;
+}
+.control-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.8px;
+  text-transform: uppercase; color: var(--muted);
+  font-family: "SF Mono", Menlo, Consolas, monospace;
+}
+.btn {
+  padding: 8px 14px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px; font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn:hover { border-color: var(--accent); }
+.btn.primary {
+  background: var(--accent); border-color: var(--accent); color: var(--bg);
+  font-weight: 600;
+}
+.btn.primary:hover { background: #6fb0ff; border-color: #6fb0ff; }
+.btn.active {
+  background: var(--accent); border-color: var(--accent); color: var(--bg);
+}
+/* Slide toggle (used for Record) */
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 2px;
+  background: transparent;
+  border: none;
+  font: inherit;
+  color: inherit;
+}
+.toggle-label {
+  font-size: 13px; font-weight: 500;
+  color: var(--muted);
+  transition: color 0.18s;
+  letter-spacing: 0.2px;
+}
+.toggle-track {
+  position: relative;
+  width: 40px; height: 22px;
+  background: var(--panel-3);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  transition: background 0.22s, border-color 0.22s;
+}
+.toggle-knob {
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 16px; height: 16px;
+  background: var(--muted);
+  border-radius: 50%;
+  transition: transform 0.22s cubic-bezier(0.4, 0.0, 0.2, 1),
+              background 0.22s, box-shadow 0.22s;
+}
+.toggle.on .toggle-track {
+  background: var(--red);
+  border-color: var(--red);
+  animation: rec-pulse 1.6s ease-in-out infinite;
+}
+.toggle.on .toggle-knob {
+  transform: translateX(18px);
+  background: #fff;
+  box-shadow: 0 0 5px rgba(255,255,255,0.55);
+}
+.toggle.on .toggle-label { color: var(--red); }
+.toggle:focus { outline: none; }
+.toggle:focus-visible .toggle-track {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+@keyframes rec-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,94,122,0.5); }
+  50%      { box-shadow: 0 0 0 6px rgba(255,94,122,0); }
+}
+
+.pill-group {
+  display: inline-flex; background: var(--panel-2);
+  border: 1px solid var(--border); border-radius: 999px; padding: 2px;
+}
+.pill-group .btn {
+  background: transparent; border: 1px solid transparent; padding: 6px 14px;
+  border-radius: 999px; font-size: 13px;
+}
+.pill-group .btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+.pill-group .btn:hover:not(.active) { background: var(--panel-3); }
+
+.tempo-input {
+  background: var(--panel-2);
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 6px 10px; color: var(--text);
+  font-family: "SF Mono", Menlo, monospace;
+  font-size: 13px;
+  width: 60px;
+}
+
+/* Stats */
+.stats {
+  display: flex; gap: 26px; flex-wrap: wrap;
+}
+.stat { display: flex; flex-direction: column; }
+.stat .label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.8px;
+  color: var(--muted); text-transform: uppercase;
+  font-family: "SF Mono", Menlo, monospace;
+}
+.stat .value {
+  font-family: "SF Mono", Menlo, monospace;
+  font-size: 16px; color: var(--text); font-weight: 600;
+  margin-top: 2px;
+}
+
+/* Gong horseshoe stage */
+.gong-stage {
+  --gong-size: 50px;   /* overridden by JS at runtime */
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1.5 / 1;
+  max-width: 920px;
+  max-height: 620px;
+  margin: 0 auto;
+  background: radial-gradient(ellipse at center 80%, rgba(91,158,255,0.04), transparent 60%);
+  user-select: none;
+}
+.gong {
+  position: absolute;
+  width: var(--gong-size);
+  height: var(--gong-size);
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #d4a45c 0%, #8c6634 48%, #3a2410 100%);
+  border: 2px solid #1a0f06;
+  box-shadow:
+    0 4px 12px rgba(0,0,0,0.45),
+    inset 0 -3px 5px rgba(0,0,0,0.4),
+    inset 0 2px 3px rgba(255,200,120,0.2);
+  cursor: pointer;
+  transition: transform 0.08s, box-shadow 0.15s;
+  transform: translate(-50%, -50%);
+}
+.gong::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(var(--gong-size) * 0.38);
+  height: calc(var(--gong-size) * 0.38);
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #ffdc94 0%, #b88848 50%, #5a3a18 100%);
+  box-shadow:
+    inset 0 -1px 2px rgba(0,0,0,0.4),
+    0 1px 1px rgba(0,0,0,0.3);
+}
+.gong:hover {
+  transform: translate(-50%, -50%) scale(1.06);
+  box-shadow:
+    0 6px 18px rgba(255,213,74,0.35),
+    inset 0 -3px 5px rgba(0,0,0,0.4),
+    inset 0 2px 3px rgba(255,200,120,0.2);
+}
+.gong.playing {
+  animation: gong-hit 0.4s ease-out;
+}
+@keyframes gong-hit {
+  0% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 0 0 0 rgba(255,213,74,0.85), inset 0 -3px 5px rgba(0,0,0,0.4); }
+  40% { transform: translate(-50%, -50%) scale(1.12); box-shadow: 0 0 28px 10px rgba(255,213,74,0.45), inset 0 -3px 5px rgba(0,0,0,0.4); }
+  100% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 4px 12px rgba(0,0,0,0.45), inset 0 -3px 5px rgba(0,0,0,0.4); }
+}
+.gong .note-label {
+  position: absolute;
+  /* left, top and transform are set inline by layoutGongs(): each label sits
+     radially OUTWARD from the horseshoe center, never above its own gong
+     (which would collide with the neighbour above on the curved sides). */
+  font-size: clamp(11px, calc(var(--gong-size) * 0.26), 15px);
+  font-weight: 600; color: var(--text);
+  font-family: "Sukhumvit Set", "Sarabun", "Noto Sans Thai", -apple-system, sans-serif;
+  pointer-events: none;
+  white-space: nowrap;
+  line-height: 1;
+}
+.player-mark {
+  position: absolute;
+  left: 50%; bottom: 8%;
+  transform: translateX(-50%);
+  width: 80px; padding: 8px 12px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 11px; text-align: center;
+  font-family: "Sarabun", -apple-system, sans-serif;
+  letter-spacing: 0.4px;
+}
+
+/* Notation grid */
+.notation {
+  font-family: "SF Mono", Menlo, monospace;
+}
+.bar-pair { margin-bottom: 12px; }
+.bar-row {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 2px;
+}
+.hand-label {
+  display: flex; align-items: center; justify-content: center;
+  background: var(--panel-3); border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted); font-size: 12px; font-weight: 600;
+  font-family: "Sarabun", -apple-system, sans-serif;
+  letter-spacing: 0.3px;
+}
+.bar-cell {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  background: var(--panel-2); border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 4px;
+  text-align: center;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  min-height: 42px;
+  align-items: center;
+}
+.beat-cell {
+  font-family: "SF Mono", Menlo, monospace;
+  font-size: 15px;
+  color: var(--text);
+  padding: 2px 0;
+  border-radius: 3px;
+  transition: background 0.1s;
+}
+.beat-cell.empty { color: var(--dim); }
+.beat-cell.high { color: var(--gold); }
+.beat-cell.low { color: var(--accent); }
+.beat-cell.mid { color: var(--green); }
+/* Octave-marked Thai note glyph (consonant + CSS-rendered dot/ring).
+   Avoids depending on font support for the Thai combining marks
+   ฺ (U+0E3A) / ํ (U+0E4D), which render inconsistently across fonts. */
+.nn {
+  position: relative;
+  display: inline-block;
+  padding: 0.25em 0;          /* matched on both axes so the consonant always centers vertically */
+  line-height: 1;
+  font-family: "Sukhumvit Set", "Sarabun", "Noto Sans Thai",
+               "IBM Plex Sans Thai", -apple-system, sans-serif;
+}
+.nn-low::after, .nn-high::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 50%;
+}
+.nn-low::after {
+  bottom: 0.06em;
+  width: 0.22em; height: 0.22em;
+  background: currentColor;
+}
+.nn-high::after {
+  top: 0.06em;
+  width: 0.22em; height: 0.22em;
+  background: currentColor;
+}
+
+.beat-cell {
+  cursor: pointer;
+}
+.beat-cell:hover {
+  background: rgba(91,158,255,0.08);
+}
+.beat-cell.current-beat {
+  background: rgba(63,223,142,0.20);
+  outline: 1px solid var(--green);
+}
+.beat-cell.cursor {
+  background: rgba(91,158,255,0.22);
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  animation: cursor-pulse 1.4s ease-in-out infinite;
+}
+.beat-cell.cursor.idle {
+  background: rgba(122,132,153,0.18);
+  outline: 2px dashed var(--muted);
+  animation: none;
+}
+@keyframes cursor-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(91,158,255,0.45); }
+  50%      { box-shadow: 0 0 0 5px rgba(91,158,255,0); }
+}
+.bar-pair .bar-row.right .bar-cell {
+  border-bottom-left-radius: 0; border-bottom-right-radius: 0;
+}
+.bar-pair .bar-row.left .bar-cell {
+  border-top-left-radius: 0; border-top-right-radius: 0;
+  border-top: none;
+}
+
+/* Legend */
+.legend {
+  display: flex; gap: 16px; flex-wrap: wrap;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.legend-item {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--muted);
+  font-family: "SF Mono", Menlo, monospace;
+}
+.legend-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+}
+
+/* Help text */
+.help-text {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: rgba(91,158,255,0.06);
+  border: 1px solid rgba(91,158,255,0.25);
+  border-radius: 8px;
+  font-size: 12px; color: var(--muted);
+  line-height: 1.7;
+}
+.help-text strong { color: var(--text); font-weight: 600; }
+.ime-infographic {
+  margin: 14px 0;
+  padding: 12px;
+  background: linear-gradient(180deg, rgba(15,20,36,0.55), rgba(19,24,38,0.55));
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.ime-infographic svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.help-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 14px 0 6px;
+  table-layout: fixed;
+}
+.help-table caption {
+  caption-side: top;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  padding: 0 0 6px 0;
+}
+.help-table td {
+  padding: 7px 10px;
+  border-top: 1px solid var(--border);
+  vertical-align: top;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text);
+}
+.help-table tr:last-child td { border-bottom: 1px solid var(--border); }
+.help-table td:first-child {
+  width: 36%;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.help-table kbd { font-family: "SF Mono", Menlo, monospace; }
+.help-table thead th {
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  padding: 7px 10px;
+  background: rgba(255,255,255,0.02);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.help-note {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 8px 0 0 0;
+  line-height: 1.6;
+}
+.help-note strong { color: var(--text); }
+
+.about-content {
+  font-size: 13.5px;
+  line-height: 1.7;
+  max-width: 82ch;
+  color: var(--text);
+}
+.about-content p { margin: 0 0 14px 0; }
+.about-content p:last-child { margin-bottom: 0; }
+.about-content strong { color: var(--text); }
+.about-content em { color: var(--accent); font-style: italic; }
+.about-content .help-table { margin-top: 4px; }
+
+.help-text kbd {
+  display: inline-block;
+  font-family: "SF Mono", Menlo, monospace;
+  font-size: 11px;
+  padding: 1px 5px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  margin: 0 2px;
+  color: var(--text);
+}
+
+footer {
+  padding: 20px 28px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  font-size: 11px; color: var(--muted);
+}
+
+@media (max-width: 900px) {
+  main { padding: 18px; }
+  .gong-stage { aspect-ratio: 1.2 / 1; }
+  .beat-cell { font-size: 13px; }
+}
+@media (max-width: 540px) {
+  .gong-stage { aspect-ratio: 1 / 1; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title-row">
+    <h1>ฆ้องวงใหญ่ — Khong Wong Yai</h1>
+    <span class="sub">เครื่องดนตรีไทย · play, record, and notate · MVP</span>
+  </div>
+</header>
+
+<main>
+  <!-- About -->
+  <section class="panel">
+    <h2>About</h2>
+    <h3>Thai-music Input Method Editor — what it is, why it works</h3>
+
+    <div class="about-content">
+      <p>
+        An <strong>Input Method Editor (IME)</strong> is software that
+        translates keystrokes into symbols a keyboard can't produce directly —
+        the same layer that lets you type Chinese (<em>nihao</em> → 你好),
+        Japanese (<em>konnichiwa</em> → こんにちは), or Vietnamese
+        (<em>tieengs Vieets</em> → tiếng Việt) on a standard keyboard.
+      </p>
+
+      <p>
+        Thai music notation has the same shape — notes (like phonemes),
+        octave markers (like diacritics), hierarchical grouping
+        (จังหวะ → ห้อง → วรรค → ท่อน), and parallel streams. ฆ้องวงใหญ่ is a
+        bimanual instrument; a keyboard is also bimanual. So we map them
+        one-to-one: typing left hand → <strong>มือซ้าย</strong>,
+        typing right → <strong>มือขวา</strong>, both together → a chord on
+        the same beat. Your typing hands literally <em>become</em> the
+        musician's hands, and touch-typing muscle memory transfers
+        directly — fast enough to capture music in real time, with audio
+        feedback as you write.
+      </p>
+    </div>
+  </section>
+
+  <div class="section-spacer"></div>
+
+  <!-- Controls -->
+  <section class="panel">
+    <h2>Controls</h2>
+    <h3>Performance</h3>
+    <div class="controls">
+      <div class="control-group">
+        <span class="control-label">Hand</span>
+        <div class="pill-group" id="hand-group">
+          <button class="btn active" data-hand="right">มือขวา</button>
+          <button class="btn" data-hand="left">มือซ้าย</button>
+        </div>
+      </div>
+      <div class="control-group">
+        <span class="control-label">Tempo</span>
+        <input type="number" id="bpm" class="tempo-input" min="30" max="300" value="200">
+        <span class="control-label">bpm</span>
+      </div>
+      <div class="control-group">
+        <span class="control-label">วรรค</span>
+        <input type="number" id="numVak" class="tempo-input" min="1" max="16" value="1">
+      </div>
+      <div class="control-group" style="margin-left:auto;">
+        <button class="toggle on" id="recordToggle" role="switch" aria-checked="true">
+          <span class="toggle-label">Record</span>
+          <span class="toggle-track"><span class="toggle-knob"></span></span>
+        </button>
+        <button class="btn" id="restBtn">Rest (−)</button>
+        <button class="btn primary" id="playBtn">Play</button>
+        <button class="btn" id="stopBtn">Stop</button>
+        <button class="btn" id="clearBtn">Clear</button>
+        <button class="btn" id="exportBtn">Export JSON</button>
+        <button class="btn" id="exportCsvBtn">Export CSV</button>
+        <button class="btn" id="importBtn">Import</button>
+      </div>
+    </div>
+    <div class="section-spacer"></div>
+    <div class="stats">
+      <div class="stat"><span class="label">Cursor</span><span class="value" id="cursorValue">มือขวา · ห้อง 1 · จังหวะ 1</span></div>
+      <div class="stat"><span class="label">Playback</span><span class="value" id="beatValue">— / —</span></div>
+      <div class="stat"><span class="label">มือขวา</span><span class="value" id="rightCount">0 notes</span></div>
+      <div class="stat"><span class="label">มือซ้าย</span><span class="value" id="leftCount">0 notes</span></div>
+    </div>
+    <div class="help-text">
+      <strong>Quick start.</strong>
+      Make sure the <strong>Record</strong> slide-toggle is on. The cell with a blue pulsing outline in the grid below is the <em>cursor</em>. The hand you type with on the keyboard <em>is</em> the hand of the music: keys on the left side write into <strong>มือซ้าย</strong>, keys on the right write into <strong>มือขวา</strong>. Press the two sides together (within ~55 ms) for a two-hand chord at the same beat; the cursor advances once. (See the <strong>About</strong> panel above for what an Input Method Editor is and why this design works for Thai music notation.)
+      <br><br>
+      <strong>Note keys — color-coded by finger:</strong>
+      <div id="imeInfographic" class="ime-infographic"></div>
+      LEFT covers three rows (top + home + bottom) for the low-to-high range; RIGHT uses two rows (top + home) and reaches the low octave via Shift. <kbd>Y</kbd> is intentionally unmapped (no ทํ on the instrument). <strong>Any Shift</strong> swaps to the other octave of the same note name; it auto-falls-back if the preferred direction is out of range.
+      <br><br>
+      <table class="help-table">
+        <caption>Modifiers (held while pressing a note key)</caption>
+        <tbody>
+          <tr>
+            <td><kbd>Shift</kbd> + key</td>
+            <td>Swap typing hand's register (LEFT ↑, RIGHT ↓; either Shift key works)</td>
+          </tr>
+          <tr>
+            <td><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + key</td>
+            <td><strong>คู่ 8</strong> — typed = <em>lower</em>; partner +1 octave. <kbd>Ctrl+;</kbd> → ม + มํ</td>
+          </tr>
+          <tr>
+            <td><kbd>Tab</kbd> + key</td>
+            <td><strong>คู่ 4</strong> — typed = <em>upper</em>; partner −3 scale-steps. <kbd>Tab+K</kbd> → ร + ซ</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="help-note">Chord modifiers route by pitch: lower → <strong>มือซ้าย</strong>, upper → <strong>มือขวา</strong>, regardless of which side typed.</p>
+
+      <table class="help-table">
+        <caption>Editing</caption>
+        <tbody>
+          <tr><td><kbd>space</kbd></td><td>Rest in both hands at cursor; advance</td></tr>
+          <tr><td><kbd>Delete</kbd> / <kbd>Backspace</kbd></td><td>Clear cursor cell, or step back + clear if already empty</td></tr>
+          <tr><td><kbd>←</kbd> / <kbd>→</kbd></td><td>Nudge cursor by one beat</td></tr>
+          <tr><td><kbd>Enter</kbd></td><td>Append new วรรค (8 ห้อง); jump to its first beat</td></tr>
+        </tbody>
+      </table>
+
+      <table class="help-table">
+        <caption>Tuning — Thai เสียง 7 เสียง</caption>
+        <tbody>
+          <tr><td>Scale</td><td>7 approximately-equidistant tones per octave</td></tr>
+          <tr><td>Range</td><td>16 gongs, ฺม = 276 Hz → ฟํ = 1225 Hz</td></tr>
+          <tr><td>Step size</td><td>~145–225 cents (never the 100-cent Western half-pitch)</td></tr>
+        </tbody>
+      </table>
+
+      <p class="help-note">Out-of-range combos (e.g. <kbd>LeftShift+A</kbd> = low ฺด, doesn't exist) silently no-op. Flip <strong>Record</strong> off for free-play — gongs sound, grid untouched, cursor turns dashed grey. Tempo only affects <strong>Play</strong>back.</p>
+    </div>
+  </section>
+
+  <div class="section-spacer"></div>
+
+  <!-- Gong stage -->
+  <section class="panel">
+    <h2>Instrument</h2>
+    <h3>ฆ้องวงใหญ่ · 16 gongs · เสียง 7 เสียง (Thai equidistant 7-tone, no semitones)</h3>
+    <div class="gong-stage" id="gong-stage">
+      <div class="player-mark">ผู้บรรเลง<br><span style="font-size:9px;letter-spacing:0.5px;text-transform:uppercase;">player</span></div>
+    </div>
+  </section>
+
+  <div class="section-spacer"></div>
+
+  <!-- Notation -->
+  <section class="panel">
+    <h2>Notation</h2>
+    <h3>ทางฆ้องวงใหญ่ · 4 จังหวะ ต่อ ห้อง</h3>
+    <div class="notation" id="notation"></div>
+    <div class="legend">
+      <div class="legend-item"><span class="legend-dot" style="background:var(--accent)"></span>เสียงต่ำ (low)</div>
+      <div class="legend-item"><span class="legend-dot" style="background:var(--green)"></span>เสียงกลาง (mid)</div>
+      <div class="legend-item"><span class="legend-dot" style="background:var(--gold)"></span>เสียงสูง (high)</div>
+      <div class="legend-item"><span class="legend-dot" style="background:var(--dim)"></span>หยุด (rest, −)</div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  © 2026 nuttakitkundum.com — ฆ้องวงใหญ่ MVP
+</footer>
+
+<script>
+// =====================================================================
+// Config
+// =====================================================================
+const NUM_GONGS = 16;
+const BEATS_PER_BAR = 4;
+const BARS_PER_VAK = 8;       // 1 วรรค = 8 ห้อง (1 บรรทัด of Thai notation)
+// Thai เสียง 7 เสียง — 7 approximately-equidistant tones per octave.
+// These specific Hz values are the measured tuning of a real ฆ้องวงใหญ่
+// (hand-tuned bronze gongs deviate slightly from mathematical 2^(1/7));
+// they still have NO Western semitones — adjacent steps are ~145–225
+// cents, never the 100-cent Western half-pitch.
+// Order matches NOTE_BASE below (lowest → highest):
+//   ฺม  ฺฟ  ฺซ  ฺล  ฺท  ·  ด  ร  ม  ฟ  ซ  ล  ท  ·  ดํ  รํ  มํ  ฟํ
+const FREQS = [
+   276,  300,  330,  360,  410,
+   450,  506,  558,  600,  680,  750,  830,
+   915, 1000, 1115, 1225,
+];
+
+// 16 base consonants (lowest → highest). The octave is conveyed visually
+// via CSS markers (.nn-low → dot below, .nn-high → ring above) rather than
+// the Thai combining marks U+0E3A / U+0E4D, which font support is patchy.
+//   indices  0-4: low   (ม ฟ ซ ล ท in the low octave — dot below)
+//   indices  5-11: mid  (ด ร ม ฟ ซ ล ท — bare)
+//   indices 12-15: high (ด ร ม ฟ — ring above)
+const NOTE_BASE = [
+  'ม','ฟ','ซ','ล','ท',
+  'ด','ร','ม','ฟ','ซ','ล','ท',
+  'ด','ร','ม','ฟ',
+];
+
+function noteRange(idx) {
+  if (idx <= 4) return 'low';
+  if (idx >= 12) return 'high';
+  return 'mid';
+}
+
+// Styled HTML for visual rendering inside the gong UI and the notation grid.
+function noteHTML(idx) {
+  return `<span class="nn nn-${noteRange(idx)}">${NOTE_BASE[idx]}</span>`;
+}
+
+// Plain-text form (with the correct combining mark) — used for the
+// browser-native tooltip / aria-label, where HTML isn't appropriate.
+function noteText(idx) {
+  const base = NOTE_BASE[idx];
+  const r = noteRange(idx);
+  if (r === 'low')  return base + 'ฺ';
+  if (r === 'high') return base + 'ํ';
+  return base;
+}
+
+// Thai-music IME — split-hand touch-typing layout.
+// Each typing hand writes into the matching music hand row, automatically:
+//   typist's LEFT side keys  → มือซ้าย (state.notes.left)
+//   typist's RIGHT side keys → มือขวา (state.notes.right)
+// Keys are identified by e.code (physical key) so the OS keyboard layout
+// (Thai Kedmanee, US QWERTY, …) does not matter.
+//
+// Asymmetric three-row / two-row layout:
+//   LEFT  (มือซ้าย, low default)  — home + top + bottom = 15 keys, idx 0–14
+//   RIGHT (มือขวา, high default)  — home + top         =  9 keys, idx 7–15
+// Right has no bottom row; its low-octave notes are reached via Shift on
+// the home row. Shift (smart octave-swap below) lets each hand still
+// reach every gong on the instrument.
+//
+//   LEFT (มือซ้าย, low default)                       RIGHT (มือขวา, high default)
+//
+//   TOP    Q  W  E  R  T                              P  O  I  U
+//          ด  ร  ม  ฟ  ซ                              ดํ รํ มํ ฟํ
+//   HOME   A  S  D  F  G                          H  J  K  L  ;
+//          ฺม ฺฟ ฺซ ฺล ฺท                              ท  ล  ซ  ฟ  ม
+//   BOTTOM Z  X  C  V  B
+//          ล  ท  ดํ รํ มํ
+//
+//   Pitch ascends ←pinky-outer to inner-stretch on every row.
+//   Y is intentionally unmapped on the right (no ทํ exists on the instrument).
+//
+// Values are NOTE_BASE indices. Ctrl/Cmd = คู่ 8 partner in the other hand.
+// Tab = คู่ 4 partner in the other hand.
+const LEFT_HAND_KEYS = {
+  'KeyA':  0,  // ฺม  (low)
+  'KeyS':  1,  // ฺฟ  (low)
+  'KeyD':  2,  // ฺซ  (low)
+  'KeyF':  3,  // ฺล  (low)
+  'KeyG':  4,  // ฺท  (low)
+  'KeyQ':  5,  // ด   (mid)
+  'KeyW':  6,  // ร   (mid)
+  'KeyE':  7,  // ม   (mid)
+  'KeyR':  8,  // ฟ   (mid)
+  'KeyT':  9,  // ซ   (mid)
+  'KeyZ': 10,  // ล   (mid)
+  'KeyX': 11,  // ท   (mid)
+  'KeyC': 12,  // ดํ  (high)
+  'KeyV': 13,  // รํ  (high)
+  'KeyB': 14,  // มํ  (high)
+};
+const RIGHT_HAND_KEYS = {
+  'Semicolon':  7,  // ม   (mid)
+  'KeyL':       8,  // ฟ   (mid)
+  'KeyK':       9,  // ซ   (mid)
+  'KeyJ':      10,  // ล   (mid)
+  'KeyH':      11,  // ท   (mid)
+  'KeyP':      12,  // ดํ  (high)
+  'KeyO':      13,  // รํ  (high)
+  'KeyI':      14,  // มํ  (high)
+  'KeyU':      15,  // ฟํ  (high)
+};
+const OCTAVE_STEPS = 7;   // 7-EDO: one octave = 7 scale-steps  (คู่ 8)
+const FOURTH_STEPS = 3;   // perfect fourth = 3 scale-steps     (คู่ 4)
+// Note: Thai interval names use inclusive counting (ร-ม-ฟ-ซ = "4 notes" = คู่ 4),
+// so the gap between the two pitches is one less than the number — 3 steps.
+
+
+// =====================================================================
+// State — step sequencer model
+// =====================================================================
+// notes[hand] is a flat array of length numBars*BEATS_PER_BAR.
+// Each cell holds either null (rest) or a gong index (0..15).
+const state = {
+  hand: 'right',
+  bpm: 200,
+  numBars: 8,     // = 1 วรรค (1 วรรค = 8 ห้อง = 32 จังหวะ)
+  cursorBeat: 0,
+  isRecording: true,    // toggle — when off, gong hits play but don't write
+  isPlaying: false,
+  playStart: 0,
+  currentBeat: -1,
+  notes: { right: [], left: [] },
+};
+
+function totalBeats() { return state.numBars * BEATS_PER_BAR; }
+
+function ensureCapacity() {
+  const t = totalBeats();
+  for (const h of ['right','left']) {
+    const arr = state.notes[h];
+    while (arr.length < t) arr.push(null);
+    if (arr.length > t) arr.length = t;
+  }
+  if (state.cursorBeat >= t) state.cursorBeat = t - 1;
+  if (state.cursorBeat < 0) state.cursorBeat = 0;
+}
+
+function advanceCursor() {
+  state.cursorBeat = (state.cursorBeat + 1) % totalBeats();
+}
+
+function setCursor(hand, beat) {
+  state.hand = hand;
+  state.cursorBeat = Math.max(0, Math.min(totalBeats() - 1, beat));
+  syncHandPills();
+  updateCursorStatus();
+  renderNotation();
+}
+
+// =====================================================================
+// Web Audio engine
+// =====================================================================
+let audioCtx = null;
+function ac() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+// Synthesize a bronze-gong tone at given freq with inharmonic partials.
+function playGongFreq(freq, when, gain = 1) {
+  const ctx = ac();
+  const t = (when ?? ctx.currentTime);
+  const master = ctx.createGain();
+  master.gain.value = 0.28 * gain;
+  // gentle lowpass to smooth top end
+  const lp = ctx.createBiquadFilter();
+  lp.type = 'lowpass'; lp.frequency.value = 6500; lp.Q.value = 0.4;
+  master.connect(lp); lp.connect(ctx.destination);
+
+  const partials = [
+    { ratio: 1.00, gain: 0.62, decay: 2.8 },
+    { ratio: 2.05, gain: 0.30, decay: 1.6 },
+    { ratio: 3.42, gain: 0.16, decay: 0.95 },
+    { ratio: 5.70, gain: 0.08, decay: 0.45 },
+    { ratio: 8.30, gain: 0.035, decay: 0.22 },
+  ];
+  partials.forEach(({ratio, gain: g, decay}) => {
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = freq * ratio;
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0, t);
+    env.gain.linearRampToValueAtTime(g, t + 0.004);
+    env.gain.exponentialRampToValueAtTime(0.0006, t + decay);
+    osc.connect(env); env.connect(master);
+    osc.start(t);
+    osc.stop(t + decay + 0.05);
+  });
+
+  // brief mallet noise burst for the strike attack
+  const sr = ctx.sampleRate;
+  const bufLen = Math.floor(0.03 * sr);
+  const buf = ctx.createBuffer(1, bufLen, sr);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < bufLen; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufLen);
+  const noise = ctx.createBufferSource();
+  noise.buffer = buf;
+  const noiseFilter = ctx.createBiquadFilter();
+  noiseFilter.type = 'bandpass';
+  noiseFilter.frequency.value = Math.min(3500, freq * 6);
+  noiseFilter.Q.value = 1.4;
+  const noiseEnv = ctx.createGain();
+  noiseEnv.gain.setValueAtTime(0.18, t);
+  noiseEnv.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+  noise.connect(noiseFilter); noiseFilter.connect(noiseEnv); noiseEnv.connect(master);
+  noise.start(t);
+
+  // Return the master gain so callers (specifically playback) can silence
+  // this voice mid-flight by ramping its gain to 0 on Stop.
+  return master;
+}
+
+function playGong(idx, when) { return playGongFreq(FREQS[idx], when); }
+
+// =====================================================================
+// Gong UI (horseshoe)
+// =====================================================================
+function renderGongs() {
+  const stage = document.getElementById('gong-stage');
+  // Remove old gongs but keep the player-mark element
+  stage.querySelectorAll('.gong').forEach(g => g.remove());
+
+  for (let i = 0; i < NUM_GONGS; i++) {
+    const gong = document.createElement('div');
+    gong.className = 'gong';
+    gong.dataset.idx = i;
+    gong.title = noteText(i);
+
+    const noteLabel = document.createElement('div');
+    noteLabel.className = 'note-label';
+    noteLabel.innerHTML = noteHTML(i);
+    gong.appendChild(noteLabel);
+
+    gong.addEventListener('mousedown', (e) => { e.preventDefault(); triggerGong(i); });
+    gong.addEventListener('touchstart', (e) => { e.preventDefault(); triggerGong(i); }, { passive: false });
+
+    stage.appendChild(gong);
+  }
+  layoutGongs();
+}
+
+// Position the 16 gongs around a 270° arc (opening at the bottom). Each note
+// label is anchored RADIALLY OUTWARD from the horseshoe center — never just
+// "above" its gong, since on the curved sides "above" overlaps the neighbour.
+// gongSize and the horseshoe center are picked from the actual stage so the
+// outermost labels still fit inside the stage at any viewport.
+function layoutGongs() {
+  const stage = document.getElementById('gong-stage');
+  const w = stage.clientWidth;
+  const h = stage.clientHeight;
+  if (w < 120 || h < 120) return;
+
+  // Label-layout knobs.
+  //   labelGap        — clear pixels between gong rim and label inner edge
+  //   labelHalfBox    — approx half of a label's bounding box (any axis)
+  //   sideMargin / topMargin / bottomMargin — keep labels off the stage edge
+  const labelGap     = 8;
+  const labelHalfBox = 13;
+  const sideMargin   = 10;
+  const topMargin    = 10;
+  const bottomMargin = 12;
+
+  // 15 gaps × 18° on a 270° arc.
+  //   chord between adjacent gong centers ≈ 2·R·sin(9°) ≈ 0.313·R
+  //   horizontal span of gong centers ≈ 1.976·R
+  //   vertical span   ≈ 1.695·R    (sin 81° − sin 225° = 0.988 + 0.707)
+  // Tight pack: chord ≥ 1.10·gongSize → R ≈ 3.51·gongSize.
+  //
+  // Label CENTER sits at distance  R + gongSize/2 + labelGap + labelHalfBox
+  // from horseshoe center. The label box itself extends ±labelHalfBox around
+  // that center. The constraints below ensure even the topmost / leftmost /
+  // rightmost label fits inside the stage.
+  const padRadial = labelGap + labelHalfBox;     // distance from gong-rim to label center
+  // gsFromH derived from: 1.695·(4.01·gongSize + padRadial) + 2·labelHalfBox + topMargin + bottomMargin ≤ h
+  // gsFromW derived from: 1.976·(4.01·gongSize + padRadial) + 2·labelHalfBox + 2·sideMargin            ≤ w
+  const gsFromH = (h - 1.695 * padRadial - 2 * labelHalfBox - topMargin - bottomMargin) / (1.695 * 4.01);
+  const gsFromW = (w - 1.976 * padRadial - 2 * labelHalfBox - 2 * sideMargin)          / (1.976 * 4.01);
+  let gongSize = Math.min(gsFromW, gsFromH);
+  gongSize = Math.max(24, Math.min(80, gongSize));
+  const R = 3.51 * gongSize;
+  const labelCenterDist = gongSize / 2 + labelGap + labelHalfBox;
+  const reachL = R + labelCenterDist;            // distance from horseshoe centre to outermost label centres
+
+  // Anchor the horseshoe so the topmost label's top edge sits at topMargin.
+  const cx = w / 2;
+  const cy = topMargin + labelHalfBox + 0.988 * reachL;
+
+  stage.style.setProperty('--gong-size', gongSize + 'px');
+
+  for (let i = 0; i < NUM_GONGS; i++) {
+    const angleDeg = 225 - i * (270 / (NUM_GONGS - 1));
+    const angleRad = angleDeg * Math.PI / 180;
+    const cosA = Math.cos(angleRad);
+    const sinA = Math.sin(angleRad);
+
+    const gx = cx + R * cosA;
+    const gy = cy - R * sinA;
+
+    const gong = stage.querySelector(`.gong[data-idx="${i}"]`);
+    if (!gong) continue;
+    gong.style.left = gx + 'px';
+    gong.style.top  = gy + 'px';
+
+    // Radial-outward offset for the label, relative to the gong's centre.
+    // The gong has transform: translate(-50%, -50%), so its own (0,0) lives
+    // at the box top-left. Its visual centre is at (gongSize/2, gongSize/2)
+    // within its own box. We add the radial offset to that.
+    const lx = labelCenterDist * cosA;
+    const ly = -labelCenterDist * sinA;
+    const label = gong.querySelector('.note-label');
+    if (label) {
+      label.style.left = (gongSize / 2 + lx) + 'px';
+      label.style.top  = (gongSize / 2 + ly) + 'px';
+      label.style.transform = 'translate(-50%, -50%)';
+    }
+  }
+}
+
+function flashGong(idx) {
+  const el = document.querySelector(`.gong[data-idx="${idx}"]`);
+  if (!el) return;
+  el.classList.remove('playing');
+  // force reflow so animation restarts even on rapid repeat
+  void el.offsetWidth;
+  el.classList.add('playing');
+  setTimeout(() => el.classList.remove('playing'), 400);
+}
+
+// Chord buffer — now keyed by HAND (left/right) instead of by pitch.
+// Within CHORD_WINDOW_MS, every key from the typist's left side fills
+// chordBuffer.left and every key from the right side fills chordBuffer.right.
+// On commit, both land at the same beat and the cursor advances once.
+const CHORD_WINDOW_MS = 55;
+let chordBuffer = { left: null, right: null };
+let chordTimer  = null;
+
+// Modifier-key held state (read by typeNote()). Tracked separately so that
+// holding a modifier across multiple note presses works as expected.
+let leftShiftHeld    = false;
+let rightShiftHeld   = false;
+let tabHeld          = false;
+let chordKuPet8Held  = false;   // Ctrl or Cmd → คู่ 8 partner
+
+// Mouse / click entry point: writes to cursor.hand at cursor.beat.
+function triggerGong(idx) {
+  playGong(idx);
+  flashGong(idx);
+  if (!state.isRecording) return;
+  chordBuffer[state.hand] = idx;
+  if (chordTimer === null) {
+    chordTimer = setTimeout(commitChord, CHORD_WINDOW_MS);
+  }
+}
+
+// Keyboard entry point. For PLAIN note keys, the typing hand decides the
+// row: left side → มือซ้าย, right side → มือขวา. For CHORD modifiers
+// (Ctrl/Cmd = คู่ 8, Tab = คู่ 4) the typing hand is ignored — the typed
+// key just picks the base note, and the pair is always voiced
+// "lower → มือซ้าย, upper → มือขวา" to match ฆ้องวงใหญ่ technique.
+// Shift (Left = low, Right = high) shifts the base note's octave first.
+function typeNote(hand, baseIdx) {
+  let primary = baseIdx;
+  // Any Shift = swap to the OTHER octave of this scale-note name.
+  // Preferred direction matches the hand's natural swap (LEFT up, RIGHT
+  // down). If that direction is out of the instrument's range, fall back
+  // to the opposite direction so the swap always resolves to a real gong.
+  if (leftShiftHeld || rightShiftHeld) {
+    const preferred = (hand === 'left') ? OCTAVE_STEPS : -OCTAVE_STEPS;
+    let shifted = primary + preferred;
+    if (shifted < 0 || shifted >= NUM_GONGS) shifted = primary - preferred;
+    if (shifted >= 0 && shifted < NUM_GONGS) primary = shifted;
+  }
+  if (primary < 0 || primary >= NUM_GONGS) return;   // out of instrument range
+
+  let leftNote  = null;
+  let rightNote = null;
+
+  if (chordKuPet8Held || tabHeld) {
+    // คู่ 8: typed note is the LOWER, partner reaches UP one octave.
+    // คู่ 4: typed note is the UPPER, partner reaches DOWN a fourth.
+    // (Octave doubling anchors on the root; fourth-doubling anchors on the
+    // melody note, with a supporting note below — that's how the two
+    // intervals are actually voiced on ฆ้องวงใหญ่.)
+    let lo, hi;
+    if (chordKuPet8Held) {
+      lo = primary;
+      hi = primary + OCTAVE_STEPS;
+      if (hi >= NUM_GONGS) { hi = primary; lo = primary - OCTAVE_STEPS; }
+    } else {
+      hi = primary;
+      lo = primary - FOURTH_STEPS;
+      if (lo < 0) { lo = primary; hi = primary + FOURTH_STEPS; }
+    }
+    if (lo >= 0 && hi < NUM_GONGS) {
+      leftNote  = lo;
+      rightNote = hi;
+    } else {
+      // Neither direction yields a valid partner — drop the chord intent
+      // and just play the typed note in its typing hand.
+      if (hand === 'left') leftNote  = primary;
+      else                 rightNote = primary;
+    }
+  } else {
+    if (hand === 'left') leftNote  = primary;
+    else                 rightNote = primary;
+  }
+
+  // Sound + flash now (not 55 ms later when the chord buffer commits).
+  if (leftNote  !== null) { playGong(leftNote);  flashGong(leftNote);  }
+  if (rightNote !== null && rightNote !== leftNote) {
+    playGong(rightNote);
+    flashGong(rightNote);
+  }
+
+  if (!state.isRecording) return;
+
+  // If this press would overwrite a slot the buffer already holds, commit
+  // the current chord first so the new press lands on a fresh beat instead
+  // of dedup'ing through the chord window. Rapid same-hand repeats (drum
+  // rolls, fast melodies on one side) record every press; genuine
+  // cross-hand chords still merge because they fill different slots.
+  const collides =
+    (leftNote  !== null && chordBuffer.left  !== null) ||
+    (rightNote !== null && chordBuffer.right !== null);
+  if (collides) {
+    if (chordTimer !== null) { clearTimeout(chordTimer); chordTimer = null; }
+    commitChord();
+  }
+
+  if (leftNote  !== null) chordBuffer.left  = leftNote;
+  if (rightNote !== null) chordBuffer.right = rightNote;
+  if (chordTimer === null) {
+    chordTimer = setTimeout(commitChord, CHORD_WINDOW_MS);
+  }
+}
+
+function commitChord() {
+  chordTimer = null;
+  const { left, right } = chordBuffer;
+  chordBuffer = { left: null, right: null };
+  if (!state.isRecording) return;
+  if (left === null && right === null) return;
+
+  if (left  !== null) state.notes.left [state.cursorBeat] = left;
+  if (right !== null) state.notes.right[state.cursorBeat] = right;
+  advanceCursor();
+  updateCounts();
+  updateCursorStatus();
+  renderNotation();
+}
+
+function insertRest() {
+  if (!state.isRecording) return;
+  if (chordTimer !== null) { clearTimeout(chordTimer); commitChord(); }
+  state.notes.left [state.cursorBeat] = null;
+  state.notes.right[state.cursorBeat] = null;
+  advanceCursor();
+  updateCounts();
+  updateCursorStatus();
+  renderNotation();
+}
+
+// Delete / Backspace:
+//   - If either hand has content at the cursor → clear both hands, stay put.
+//   - If the cursor sits on a fully empty beat → step back and clear there.
+// Any pending chord is flushed first so behaviour stays deterministic right
+// after typing.
+function deleteAtCursor() {
+  if (!state.isRecording) return;
+  if (chordTimer !== null) { clearTimeout(chordTimer); commitChord(); }
+  const beat = state.cursorBeat;
+  const hasContent =
+    state.notes.left [beat] !== null ||
+    state.notes.right[beat] !== null;
+  if (hasContent) {
+    state.notes.left [beat] = null;
+    state.notes.right[beat] = null;
+  } else {
+    const total = totalBeats();
+    state.cursorBeat = (beat - 1 + total) % total;
+    state.notes.left [state.cursorBeat] = null;
+    state.notes.right[state.cursorBeat] = null;
+  }
+  updateCounts();
+  updateCursorStatus();
+  renderNotation();
+}
+
+function moveCursorBy(delta) {
+  const total = totalBeats();
+  state.cursorBeat = (state.cursorBeat + delta + total) % total;
+  updateCursorStatus();
+  renderNotation();
+}
+
+// Append a new วรรค (8 ห้อง = 32 จังหวะ) at the end and move the cursor to
+// its first beat. Capped at 16 วรรค to match the numVak input range.
+function appendNewVak() {
+  const currentVak = state.numBars / BARS_PER_VAK;
+  if (currentVak >= 16) return;
+  if (chordTimer !== null) { clearTimeout(chordTimer); commitChord(); }
+  state.numBars += BARS_PER_VAK;
+  document.getElementById('numVak').value = currentVak + 1;
+  ensureCapacity();
+  state.cursorBeat = currentVak * BARS_PER_VAK * BEATS_PER_BAR;
+  updateCounts();
+  updateCursorStatus();
+  renderNotation();
+}
+
+// =====================================================================
+// IME infographic — color-coded keyboard + hand position diagram
+// =====================================================================
+function buildIMEInfographic() {
+  const target = document.getElementById('imeInfographic');
+  if (!target) return;
+
+  // Finger colors (match standard touch-typing color convention).
+  const C = {
+    pinky:   '#FF5252',   // both hands, outer
+    ring:    '#FF9F40',   // both hands
+    midL:    '#FFC93C',   // left middle  — yellow
+    midR:    '#5CE0A0',   // right middle — green
+    idxL:    '#5B9EFF',   // left index
+    idxR:    '#FF6FB0',   // right index
+    unused:  '#3a3a45',
+    palm:    '#1f2433',
+    thumb:   '#475569',
+    border:  '#0a0e1a',
+    text:    '#ffffff',
+    label:   '#7a8499',
+  };
+
+  // 10 keys per row × 3 rows. Each cell: [letter, Thai note, color] or null
+  // (null = skip rendering; used for the missing right-hand bottom row).
+  const ROWS = [
+    [['Q','ด',C.pinky],['W','ร',C.ring],['E','ม',C.midL],['R','ฟ',C.idxL],['T','ซ',C.idxL],
+     ['Y','—',C.unused],['U','ฟํ',C.idxR],['I','มํ',C.midR],['O','รํ',C.ring],['P','ดํ',C.pinky]],
+    [['A','ฺม',C.pinky],['S','ฺฟ',C.ring],['D','ฺซ',C.midL],['F','ฺล',C.idxL],['G','ฺท',C.idxL],
+     ['H','ท',C.idxR],['J','ล',C.idxR],['K','ซ',C.midR],['L','ฟ',C.ring],[';','ม',C.pinky]],
+    [['Z','ล',C.pinky],['X','ท',C.ring],['C','ดํ',C.midL],['V','รํ',C.idxL],['B','มํ',C.idxL],
+     null, null, null, null, null],
+  ];
+
+  const KW = 58, KH = 58, GAP = 4, ROW_H = KH + GAP;
+  const padX = 30, padY = 16;
+
+  const esc = (s) => String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  let svg = '';
+
+  // ---- keys ----
+  ROWS.forEach((row, ri) => {
+    row.forEach((cell, ci) => {
+      if (!cell) return;   // null = skip (e.g. right-hand has no bottom row)
+      const [letter, note, color] = cell;
+      const x = padX + ci * (KW + GAP);
+      const y = padY + ri * ROW_H;
+      svg += `<g>
+        <rect x="${x}" y="${y}" width="${KW}" height="${KH}" rx="7"
+              fill="${color}" stroke="${C.border}" stroke-width="1"/>
+        <text x="${x + KW/2}" y="${y + 22}" text-anchor="middle"
+              fill="${C.text}" font-size="13" font-weight="700"
+              font-family="'SF Mono', Menlo, monospace">${esc(letter)}</text>
+        <text x="${x + KW/2}" y="${y + 47}" text-anchor="middle"
+              fill="${C.text}" font-size="18" font-weight="600"
+              font-family="'Sukhumvit Set', 'Sarabun', 'Noto Sans Thai', sans-serif">${esc(note)}</text>
+      </g>`;
+    });
+  });
+
+  // ---- hands ----
+  const handY  = padY + 3 * ROW_H + 28;   // top of fingers
+  const palmY  = handY + 142;              // wrist ellipse
+
+  function fingerRect(x, dy, h, color) {
+    return `<rect x="${x}" y="${handY + dy}" width="34" height="${h}" rx="14"
+                  fill="${color}" stroke="${C.border}" stroke-width="1"/>`;
+  }
+  function thumbRect(cx, cy, angle, color) {
+    return `<g transform="translate(${cx} ${cy}) rotate(${angle})">
+              <rect x="-40" y="-15" width="78" height="30" rx="15"
+                    fill="${color}" stroke="${C.border}" stroke-width="1"/>
+            </g>`;
+  }
+
+  // Left hand
+  const lcx = 180;
+  svg += `<ellipse cx="${lcx}" cy="${palmY}" rx="170" ry="22"
+                   fill="${C.palm}" stroke="${C.border}" stroke-width="1"/>`;
+  svg += fingerRect( 50, 50, 100, C.pinky);   // L pinky
+  svg += fingerRect(105, 28, 122, C.ring);    // L ring
+  svg += fingerRect(160,  6, 144, C.midL);    // L middle
+  svg += fingerRect(215, 28, 122, C.idxL);    // L index
+  svg += thumbRect(290, handY + 110, 35, C.thumb);  // L thumb
+
+  // Right hand
+  const rcx = 560;
+  svg += `<ellipse cx="${rcx}" cy="${palmY}" rx="170" ry="22"
+                   fill="${C.palm}" stroke="${C.border}" stroke-width="1"/>`;
+  svg += thumbRect(430, handY + 110, -35, C.thumb);  // R thumb
+  svg += fingerRect(471, 28, 122, C.idxR);    // R index
+  svg += fingerRect(526,  6, 144, C.midR);    // R middle
+  svg += fingerRect(581, 28, 122, C.ring);    // R ring
+  svg += fingerRect(636, 50, 100, C.pinky);   // R pinky
+
+  // Hand labels
+  svg += `<text x="${lcx}" y="${palmY + 44}" text-anchor="middle"
+                fill="${C.label}" font-size="12"
+                font-family="'Sarabun', 'Noto Sans Thai', sans-serif">มือซ้าย · low default</text>`;
+  svg += `<text x="${rcx}" y="${palmY + 44}" text-anchor="middle"
+                fill="${C.label}" font-size="12"
+                font-family="'Sarabun', 'Noto Sans Thai', sans-serif">มือขวา · high default</text>`;
+
+  target.innerHTML =
+    `<svg viewBox="0 0 760 460" xmlns="http://www.w3.org/2000/svg"
+          role="img" aria-label="Thai-music IME keyboard layout">${svg}</svg>`;
+}
+
+// =====================================================================
+// Export / Import — round-trip the notation as JSON
+// =====================================================================
+function exportNotation() {
+  if (chordTimer !== null) { clearTimeout(chordTimer); commitChord(); }
+  const data = {
+    type: 'khong-wong-yai-notation',
+    version: 1,
+    tempo: state.bpm,
+    vak: state.numBars / BARS_PER_VAK,
+    notes: {
+      right: [...state.notes.right],
+      left:  [...state.notes.left],
+    },
+  };
+  const stamp = new Date().toISOString().slice(0,16).replace(/[T:]/g,'-');
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `khong-wong-yai-${stamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// CSV export — produces a spreadsheet structured like a printed Thai-music
+// notation page: metadata at the top, then for each วรรค two rows
+// (มือขวา on top, มือซ้าย below) across 8 ห้อง columns. Each cell holds the
+// 4 จังหวะ joined by spaces, with "-" for rests.
+function exportNotationCSV() {
+  if (chordTimer !== null) { clearTimeout(chordTimer); commitChord(); }
+
+  const numVak = Math.max(1, Math.round(state.numBars / BARS_PER_VAK));
+  const rows = [];
+
+  // Metadata header
+  rows.push([ 'ฆ้องวงใหญ่' ]);
+  rows.push([ 'Tempo', state.bpm + ' bpm', 'วรรค', numVak ]);
+  rows.push([]); // blank separator
+
+  // Column header
+  const colHeader = [''];
+  for (let i = 0; i < BARS_PER_VAK; i++) colHeader.push('ห้อง ' + (i + 1));
+  rows.push(colHeader);
+
+  // For each วรรค: one row for มือขวา, one for มือซ้าย, then a blank row
+  for (let vak = 0; vak < numVak; vak++) {
+    const vakStart = vak * BARS_PER_VAK * BEATS_PER_BAR;
+    for (const hand of ['right', 'left']) {
+      const handLabel = hand === 'right' ? 'มือขวา' : 'มือซ้าย';
+      const row = [ `วรรค ${vak + 1} · ${handLabel}` ];
+      for (let bar = 0; bar < BARS_PER_VAK; bar++) {
+        const barStart = vakStart + bar * BEATS_PER_BAR;
+        const beats = [];
+        for (let b = 0; b < BEATS_PER_BAR; b++) {
+          const idx = state.notes[hand][barStart + b];
+          beats.push(idx == null ? '-' : noteText(idx));
+        }
+        row.push(beats.join(' '));
+      }
+      rows.push(row);
+    }
+    rows.push([]); // blank row between วรรค (visual breathing space in Excel)
+  }
+
+  const csv = '﻿' + rows.map(csvRow).join('\n');
+  const stamp = new Date().toISOString().slice(0,16).replace(/[T:]/g,'-');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `khong-wong-yai-${stamp}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function csvRow(cells) {
+  return (cells || []).map(csvField).join(',');
+}
+function csvField(value) {
+  if (value === null || value === undefined) return '';
+  const s = String(value);
+  // Always quote — keeps Thai text + embedded spaces safe across spreadsheet apps.
+  return '"' + s.replace(/"/g, '""') + '"';
+}
+
+function triggerImport() {
+  const picker = document.createElement('input');
+  picker.type = 'file';
+  picker.accept = '.json,application/json';
+  picker.addEventListener('change', () => {
+    const file = picker.files && picker.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        applyImport(JSON.parse(reader.result));
+      } catch (err) {
+        alert('Import failed: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  });
+  picker.click();
+}
+
+function applyImport(data) {
+  if (!data || typeof data !== 'object') throw new Error('not a notation file');
+
+  // Tempo
+  if (typeof data.tempo === 'number') {
+    state.bpm = Math.max(30, Math.min(300, Math.round(data.tempo)));
+    document.getElementById('bpm').value = state.bpm;
+  }
+
+  // วรรค count — prefer data.vak, otherwise derive from notes length
+  let vak = (typeof data.vak === 'number') ? data.vak : null;
+  if (!vak && data.notes) {
+    const len = Math.max(
+      Array.isArray(data.notes.right) ? data.notes.right.length : 0,
+      Array.isArray(data.notes.left)  ? data.notes.left.length  : 0
+    );
+    vak = Math.max(1, Math.ceil(len / (BARS_PER_VAK * BEATS_PER_BAR)));
+  }
+  if (vak) {
+    vak = Math.max(1, Math.min(16, Math.round(vak)));
+    state.numBars = vak * BARS_PER_VAK;
+    document.getElementById('numVak').value = vak;
+  }
+
+  // Notes
+  if (data.notes) {
+    if (Array.isArray(data.notes.right)) state.notes.right = data.notes.right.slice();
+    if (Array.isArray(data.notes.left))  state.notes.left  = data.notes.left.slice();
+  }
+
+  state.cursorBeat = 0;
+  if (chordTimer !== null) { clearTimeout(chordTimer); chordTimer = null; }
+  chordBuffer = { left: null, right: null };
+  ensureCapacity();
+  updateCounts();
+  updateCursorStatus();
+  renderNotation();
+}
+
+// =====================================================================
+// Notation rendering
+// =====================================================================
+function renderNotation() {
+  const root = document.getElementById('notation');
+  root.innerHTML = '';
+
+  const totalBars = state.numBars;
+  const barsPerLine = Math.min(8, totalBars);
+  const lines = Math.ceil(totalBars / barsPerLine);
+
+  for (let line = 0; line < lines; line++) {
+    const startBar = line * barsPerLine;
+    const endBar = Math.min(startBar + barsPerLine, totalBars);
+    const barsInLine = endBar - startBar;
+
+    const pair = document.createElement('div');
+    pair.className = 'bar-pair';
+
+    ['right', 'left'].forEach(hand => {
+      const row = document.createElement('div');
+      row.className = 'bar-row ' + hand;
+      row.style.gridTemplateColumns = `72px repeat(${barsInLine}, 1fr)`;
+
+      const label = document.createElement('div');
+      label.className = 'hand-label';
+      label.textContent = hand === 'right' ? 'มือขวา' : 'มือซ้าย';
+      row.appendChild(label);
+
+      for (let b = startBar; b < endBar; b++) {
+        const barCell = document.createElement('div');
+        barCell.className = 'bar-cell';
+
+        for (let beat = 0; beat < BEATS_PER_BAR; beat++) {
+          const globalBeat = b * BEATS_PER_BAR + beat;
+          const cell = document.createElement('div');
+          cell.className = 'beat-cell';
+          const gongIdx = state.notes[hand][globalBeat];
+          if (gongIdx != null) {
+            cell.innerHTML = noteHTML(gongIdx);
+            cell.classList.add(noteRange(gongIdx));
+          } else {
+            cell.textContent = '−';
+            cell.classList.add('empty');
+          }
+          if (hand === state.hand && globalBeat === state.cursorBeat) {
+            cell.classList.add('cursor');
+            if (!state.isRecording) cell.classList.add('idle');
+          }
+          if (state.isPlaying && globalBeat === state.currentBeat) {
+            cell.classList.add('current-beat');
+          }
+          cell.addEventListener('click', () => setCursor(hand, globalBeat));
+          barCell.appendChild(cell);
+        }
+        row.appendChild(barCell);
+      }
+      pair.appendChild(row);
+    });
+    root.appendChild(pair);
+  }
+}
+
+// =====================================================================
+// Playback
+// =====================================================================
+// Track every voice (master gain) and timer scheduled during playback so a
+// manual Stop can cancel the visual flashes and cut the queued audio.
+let playbackEndTimer    = null;
+let playbackVisualTimers = [];
+let playbackActiveMasters = [];
+
+function startPlayback() {
+  if (state.isPlaying) return;
+  const ctx = ac();
+  state.isPlaying = true;
+  state.playStart = ctx.currentTime + 0.12; // small lead-in
+  const beatDur = 60 / state.bpm;
+  const total = totalBeats();
+
+  playbackActiveMasters = [];
+  playbackVisualTimers  = [];
+
+  for (const hand of ['right','left']) {
+    for (let beat = 0; beat < total; beat++) {
+      const gong = state.notes[hand][beat];
+      if (gong == null) continue;
+      const t = state.playStart + beat * beatDur;
+      const master = playGong(gong, t);
+      if (master) playbackActiveMasters.push(master);
+      const ms = Math.max(0, (t - ctx.currentTime) * 1000 - 5);
+      playbackVisualTimers.push(setTimeout(() => flashGong(gong), ms));
+    }
+  }
+  playbackEndTimer = setTimeout(stopPlayback, (total * beatDur + 0.4) * 1000);
+  tickLoop();
+}
+
+// cutAudio = true silences any voices still ringing (manual Stop button);
+// false lets the tails decay naturally (used by the auto end-of-phrase stop
+// and tickLoop's natural completion).
+function stopPlayback(cutAudio = false) {
+  if (!state.isPlaying && playbackActiveMasters.length === 0) return;
+  state.isPlaying = false;
+  state.currentBeat = -1;
+
+  playbackVisualTimers.forEach(clearTimeout);
+  playbackVisualTimers = [];
+
+  if (playbackEndTimer) { clearTimeout(playbackEndTimer); playbackEndTimer = null; }
+
+  if (cutAudio && audioCtx) {
+    const now = audioCtx.currentTime;
+    for (const master of playbackActiveMasters) {
+      if (!master || !master.gain) continue;
+      try {
+        master.gain.cancelScheduledValues(now);
+        master.gain.setValueAtTime(master.gain.value, now);
+        master.gain.linearRampToValueAtTime(0, now + 0.04);
+      } catch (_) { /* node may already be disposed */ }
+    }
+  }
+  playbackActiveMasters = [];
+
+  document.getElementById('beatValue').textContent = '— / —';
+  renderNotation();
+}
+
+function tickLoop() {
+  if (!state.isPlaying) return;
+  const ctx = ac();
+  const beatDur = 60 / state.bpm;
+  const elapsed = ctx.currentTime - state.playStart;
+  const beat = Math.floor(elapsed / beatDur);
+  const total = totalBeats();
+  if (beat !== state.currentBeat) {
+    state.currentBeat = beat;
+    document.getElementById('beatValue').textContent =
+      (beat >= 0 ? Math.min(beat + 1, total) : '—') + ' / ' + total;
+    renderNotation();
+  }
+  if (beat >= total) { stopPlayback(); return; }
+  requestAnimationFrame(tickLoop);
+}
+
+// =====================================================================
+// UI helpers
+// =====================================================================
+function countNotes(hand) {
+  let n = 0;
+  for (const v of state.notes[hand]) if (v != null) n++;
+  return n;
+}
+function updateCounts() {
+  document.getElementById('rightCount').textContent = countNotes('right') + ' notes';
+  document.getElementById('leftCount').textContent = countNotes('left') + ' notes';
+}
+function updateCursorStatus() {
+  const beat = state.cursorBeat;
+  const beatsPerVak = BARS_PER_VAK * BEATS_PER_BAR;          // 32
+  const vak       = Math.floor(beat / beatsPerVak) + 1;
+  const barInVak  = Math.floor((beat % beatsPerVak) / BEATS_PER_BAR) + 1;
+  const within    = (beat % BEATS_PER_BAR) + 1;
+  const handTh = state.hand === 'right' ? 'มือขวา' : 'มือซ้าย';
+  document.getElementById('cursorValue').textContent =
+    `${handTh} · วรรค ${vak} · ห้อง ${barInVak} · จังหวะ ${within}`;
+}
+function syncHandPills() {
+  document.querySelectorAll('#hand-group .btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.hand === state.hand);
+  });
+}
+
+// =====================================================================
+// Wire up controls
+// =====================================================================
+function init() {
+  ensureCapacity();
+  renderGongs();
+  renderNotation();
+  updateCounts();
+  updateCursorStatus();
+  buildIMEInfographic();
+
+  // Re-layout the horseshoe whenever the stage size changes (window resize,
+  // panel reflow, etc.). ResizeObserver fires once on observe(), so the
+  // initial layout is covered too.
+  const stage = document.getElementById('gong-stage');
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(() => layoutGongs()).observe(stage);
+  } else {
+    window.addEventListener('resize', layoutGongs);
+  }
+
+  // Hand selector — switches active hand but keeps the cursor beat position
+  document.querySelectorAll('#hand-group .btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.hand = btn.dataset.hand;
+      syncHandPills();
+      updateCursorStatus();
+      renderNotation();
+    });
+  });
+
+  // BPM (playback only)
+  const bpmInput = document.getElementById('bpm');
+  bpmInput.addEventListener('change', () => {
+    const v = Math.max(30, Math.min(300, +bpmInput.value || 200));
+    state.bpm = v;
+    bpmInput.value = v;
+  });
+
+  // numVak — 1 วรรค = 8 ห้อง = 32 จังหวะ. Drives state.numBars internally.
+  const vakInput = document.getElementById('numVak');
+  vakInput.addEventListener('change', () => {
+    const v = Math.max(1, Math.min(16, +vakInput.value || 1));
+    state.numBars = v * BARS_PER_VAK;
+    vakInput.value = v;
+    ensureCapacity();
+    updateCounts();
+    updateCursorStatus();
+    renderNotation();
+  });
+
+  // Transport
+  const recToggle = document.getElementById('recordToggle');
+  recToggle.classList.toggle('on', state.isRecording);
+  recToggle.setAttribute('aria-checked', String(state.isRecording));
+  recToggle.addEventListener('click', () => {
+    state.isRecording = !state.isRecording;
+    recToggle.classList.toggle('on', state.isRecording);
+    recToggle.setAttribute('aria-checked', String(state.isRecording));
+    renderNotation();
+  });
+  document.getElementById('playBtn').addEventListener('click', startPlayback);
+  document.getElementById('stopBtn').addEventListener('click', () => stopPlayback(true));
+  document.getElementById('restBtn').addEventListener('click', insertRest);
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    for (const h of ['right','left']) state.notes[h].fill(null);
+    state.cursorBeat = 0;
+    state.currentBeat = -1;
+    updateCounts();
+    updateCursorStatus();
+    renderNotation();
+  });
+  document.getElementById('exportBtn').addEventListener('click', exportNotation);
+  document.getElementById('exportCsvBtn').addEventListener('click', exportNotationCSV);
+  document.getElementById('importBtn').addEventListener('click', triggerImport);
+
+  // Keyboard — Thai music IME (split-hand). All detection via e.code so the
+  // OS keyboard layout (Thai Kedmanee, US QWERTY, …) doesn't matter.
+  const pressedCodes = new Set();
+  window.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    const code = e.code;
+
+    // Modifier-held tracking (no preventDefault; let other UI keep working)
+    if (code === 'ShiftLeft')   { leftShiftHeld   = true; return; }
+    if (code === 'ShiftRight')  { rightShiftHeld  = true; return; }
+    if (code === 'ControlLeft' || code === 'ControlRight' ||
+        code === 'MetaLeft'    || code === 'MetaRight')   { chordKuPet8Held = true; return; }
+    if (code === 'Tab')         { tabHeld = true; e.preventDefault(); return; }
+
+    if (pressedCodes.has(code)) return;   // suppress key-repeat
+
+    // Note keys (split-hand)
+    if (LEFT_HAND_KEYS[code] !== undefined) {
+      e.preventDefault();
+      pressedCodes.add(code);
+      typeNote('left', LEFT_HAND_KEYS[code]);
+      return;
+    }
+    if (RIGHT_HAND_KEYS[code] !== undefined) {
+      e.preventDefault();
+      pressedCodes.add(code);
+      typeNote('right', RIGHT_HAND_KEYS[code]);
+      return;
+    }
+
+    // Auxiliary
+    if (code === 'Space')      { e.preventDefault(); pressedCodes.add(code); insertRest();        return; }
+    if (code === 'Delete' ||
+        code === 'Backspace')  { e.preventDefault(); pressedCodes.add(code); deleteAtCursor();    return; }
+    if (code === 'ArrowLeft')  { e.preventDefault(); pressedCodes.add(code); moveCursorBy(-1);    return; }
+    if (code === 'ArrowRight') { e.preventDefault(); pressedCodes.add(code); moveCursorBy(+1);    return; }
+    if (code === 'Enter' ||
+        code === 'NumpadEnter'){ e.preventDefault(); pressedCodes.add(code); appendNewVak();      return; }
+  });
+
+  window.addEventListener('keyup', (e) => {
+    const code = e.code;
+    pressedCodes.delete(code);
+    if (code === 'ShiftLeft')   leftShiftHeld   = false;
+    if (code === 'ShiftRight')  rightShiftHeld  = false;
+    if (code === 'ControlLeft' || code === 'ControlRight' ||
+        code === 'MetaLeft'    || code === 'MetaRight')   chordKuPet8Held = false;
+    if (code === 'Tab')         tabHeld = false;
+  });
+
+  // If focus leaves the window while a modifier is held, reset — otherwise
+  // it stays "stuck" because we never see its keyup.
+  window.addEventListener('blur', () => {
+    pressedCodes.clear();
+    leftShiftHeld = rightShiftHeld = tabHeld = chordKuPet8Held = false;
+  });
+}
+
+init();
+</script>
+
+</body>
+</html>
