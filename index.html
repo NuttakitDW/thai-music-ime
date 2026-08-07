@@ -196,6 +196,7 @@ section.panel h3 {
   margin: 0 auto;
   background: radial-gradient(ellipse at center 80%, rgba(91,158,255,0.04), transparent 60%);
   user-select: none;
+  touch-action: none;   /* กวาดด้วยนิ้วบนมือถือได้ ไม่กลายเป็น scroll */
 }
 .gong {
   position: absolute;
@@ -566,6 +567,7 @@ footer {
     <div class="gong-stage" id="gong-stage">
       <div class="player-mark">ผู้บรรเลง<br><span style="font-size:9px;letter-spacing:0.5px;text-transform:uppercase;">player</span></div>
     </div>
+    <p class="help-note">คลิก/แตะ = ตีปกติ (บันทึกลงกริดเมื่อ Record เปิด) · <strong>กดค้างแล้วลากผ่านลูกฆ้อง = กวาด</strong> — เริ่มจากตำแหน่งไหน ทิศทางไหนก็ได้ ใช้หลายนิ้วพร้อมกันได้ ลากเร็วเสียงจะเบาลงเหมือนไม้ลูบผ่านจริง (เสียงกวาดไม่ถูกบันทึกลงกริด)</p>
   </section>
 
   <div class="section-spacer"></div>
@@ -835,22 +837,44 @@ function setCursor(hand, beat) {
 // Web Audio engine
 // =====================================================================
 let audioCtx = null;
+let masterBus = null;   // every voice → masterBus → limiter → destination
 function ac() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+    // Shared bus + limiter: overlapping voices (fast runs, sweeps, chords)
+    // sum WAY past 1.0 — without this the mix hard-clips and sounds fizzy.
+    const limiter = audioCtx.createDynamicsCompressor();
+    limiter.threshold.value = -10;
+    limiter.knee.value = 6;
+    limiter.ratio.value = 16;
+    limiter.attack.value = 0.002;
+    limiter.release.value = 0.16;
+    masterBus = audioCtx.createGain();
+    masterBus.gain.value = 0.9;
+    masterBus.connect(limiter);
+    limiter.connect(audioCtx.destination);
+  }
   if (audioCtx.state === 'suspended') audioCtx.resume();
   return audioCtx;
 }
 
 // Synthesize a bronze-gong tone at given freq with inharmonic partials.
-function playGongFreq(freq, when, gain = 1) {
+// velocity ∈ (0..1]: soft hits are darker (lowpass + upper partials fade
+// first), ring slightly shorter, and have almost no mallet click — matches
+// how a real padded mallet behaves on bronze.
+function playGongFreq(freq, when, velocity = 1) {
   const ctx = ac();
   const t = (when ?? ctx.currentTime);
   const master = ctx.createGain();
-  master.gain.value = 0.28 * gain;
-  // gentle lowpass to smooth top end
+  master.gain.value = 0.28 * velocity;
+  // gentle lowpass to smooth top end — closes down on soft hits
   const lp = ctx.createBiquadFilter();
-  lp.type = 'lowpass'; lp.frequency.value = 6500; lp.Q.value = 0.4;
-  master.connect(lp); lp.connect(ctx.destination);
+  lp.type = 'lowpass'; lp.frequency.value = 2600 + 3900 * velocity; lp.Q.value = 0.4;
+  master.connect(lp); lp.connect(masterBus);
+
+  // Low gongs ring much longer than high ones (bigger bronze, more mass).
+  const decayScale = 1.5 * Math.pow(FREQS[0] / freq, 0.4) * (0.55 + 0.45 * velocity);
+  const upperMix = 0.3 + 0.7 * velocity;
 
   const partials = [
     { ratio: 1.00, gain: 0.62, decay: 2.8 },
@@ -863,13 +887,14 @@ function playGongFreq(freq, when, gain = 1) {
     const osc = ctx.createOscillator();
     osc.type = 'sine';
     osc.frequency.value = freq * ratio;
+    const dur = decay * decayScale;
     const env = ctx.createGain();
     env.gain.setValueAtTime(0, t);
-    env.gain.linearRampToValueAtTime(g, t + 0.004);
-    env.gain.exponentialRampToValueAtTime(0.0006, t + decay);
+    env.gain.linearRampToValueAtTime(ratio === 1 ? g : g * upperMix, t + 0.004);
+    env.gain.exponentialRampToValueAtTime(0.0006, t + dur);
     osc.connect(env); env.connect(master);
     osc.start(t);
-    osc.stop(t + decay + 0.05);
+    osc.stop(t + dur + 0.05);
   });
 
   // brief mallet noise burst for the strike attack
@@ -885,7 +910,7 @@ function playGongFreq(freq, when, gain = 1) {
   noiseFilter.frequency.value = Math.min(3500, freq * 6);
   noiseFilter.Q.value = 1.4;
   const noiseEnv = ctx.createGain();
-  noiseEnv.gain.setValueAtTime(0.18, t);
+  noiseEnv.gain.setValueAtTime(0.2 * velocity * velocity, t);
   noiseEnv.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
   noise.connect(noiseFilter); noiseFilter.connect(noiseEnv); noiseEnv.connect(master);
   noise.start(t);
@@ -895,11 +920,38 @@ function playGongFreq(freq, when, gain = 1) {
   return master;
 }
 
-function playGong(idx, when) { return playGongFreq(FREQS[idx], when); }
+// Most recent LIVE voice per gong. Re-striking a ringing gong ducks the old
+// voice first: on the real instrument the new strike re-energizes the same
+// piece of bronze — you never hear two full-volume copies of one gong.
+// Scheduled playback notes (when != undefined) skip this: ducking "now"
+// would be wrong for a note that sounds in the future.
+const liveVoiceByGong = new Array(NUM_GONGS).fill(null);
+
+function playGong(idx, when, velocity = 1) {
+  const live = (when === undefined);
+  if (live) {
+    const prev = liveVoiceByGong[idx];
+    if (prev && prev.gain) {
+      try {
+        const now = audioCtx.currentTime;
+        prev.gain.cancelScheduledValues(now);
+        prev.gain.setValueAtTime(prev.gain.value, now);
+        prev.gain.linearRampToValueAtTime(prev.gain.value * 0.25, now + 0.05);
+      } catch (_) { /* node may already be disposed */ }
+    }
+  }
+  const master = playGongFreq(FREQS[idx], when, velocity);
+  if (live) liveVoiceByGong[idx] = master;
+  return master;
+}
 
 // =====================================================================
 // Gong UI (horseshoe)
 // =====================================================================
+// Gong centre positions + size in stage-local px, refreshed by layoutGongs()
+// on every resize. Used for geometric hit-testing of taps and sweeps.
+const stageGeom = { gongSize: 0, positions: [] };
+
 function renderGongs() {
   const stage = document.getElementById('gong-stage');
   // Remove old gongs but keep the player-mark element
@@ -916,8 +968,8 @@ function renderGongs() {
     noteLabel.innerHTML = noteHTML(i);
     gong.appendChild(noteLabel);
 
-    gong.addEventListener('mousedown', (e) => { e.preventDefault(); triggerGong(i); });
-    gong.addEventListener('touchstart', (e) => { e.preventDefault(); triggerGong(i); }, { passive: false });
+    // No per-gong listeners: all pointer input (tap AND sweep) is handled
+    // at the stage level via geometric hit-testing — see initSweep().
 
     stage.appendChild(gong);
   }
@@ -972,6 +1024,9 @@ function layoutGongs() {
 
   stage.style.setProperty('--gong-size', gongSize + 'px');
 
+  stageGeom.gongSize = gongSize;
+  stageGeom.positions.length = 0;
+
   for (let i = 0; i < NUM_GONGS; i++) {
     const angleDeg = 225 - i * (270 / (NUM_GONGS - 1));
     const angleRad = angleDeg * Math.PI / 180;
@@ -980,6 +1035,8 @@ function layoutGongs() {
 
     const gx = cx + R * cosA;
     const gy = cy - R * sinA;
+
+    stageGeom.positions[i] = { x: gx, y: gy };
 
     const gong = stage.querySelector(`.gong[data-idx="${i}"]`);
     if (!gong) continue;
@@ -1035,6 +1092,76 @@ function triggerGong(idx) {
   if (chordTimer === null) {
     chordTimer = setTimeout(commitChord, CHORD_WINDOW_MS);
   }
+}
+
+// =====================================================================
+// Sweep (กวาดลูกฆ้อง) — stage-level pointer tracking
+// =====================================================================
+// Press = a normal strike (records as before). Keep holding and drag across
+// other gongs = กวาด: every gong the mallet path crosses sounds, from any
+// start position in any direction. Each active pointerId is tracked
+// separately, so two fingers/hands can sweep at once. Swept notes are
+// performance-only — they play but are NOT recorded (the 4-beat grid can't
+// represent a glissando).
+const sweepPointers = new Map();   // pointerId → { lastGong, x, y, t }
+
+// Nearest gong whose (slightly padded) disc contains the point, else -1.
+// Nearest-wins resolves the overlap where padded discs of neighbours touch.
+function gongAtPoint(x, y) {
+  const hitR = stageGeom.gongSize * 0.62;
+  let best = -1, bestD2 = hitR * hitR;
+  for (let i = 0; i < stageGeom.positions.length; i++) {
+    const p = stageGeom.positions[i];
+    const dx = x - p.x, dy = y - p.y;
+    const d2 = dx * dx + dy * dy;
+    if (d2 <= bestD2) { bestD2 = d2; best = i; }
+  }
+  return best;
+}
+
+// Swept strike: lighter than a direct hit, never recorded.
+function sweepGong(idx, velocity) {
+  playGong(idx, undefined, velocity);
+  flashGong(idx);
+}
+
+function initSweep(stage) {
+  stage.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    const rect = stage.getBoundingClientRect();
+    const x = e.clientX - rect.left, y = e.clientY - rect.top;
+    const idx = gongAtPoint(x, y);
+    sweepPointers.set(e.pointerId, { lastGong: idx, x, y, t: e.timeStamp });
+    try { stage.setPointerCapture(e.pointerId); } catch (_) { /* not critical */ }
+    if (idx >= 0) triggerGong(idx);
+  });
+
+  stage.addEventListener('pointermove', (e) => {
+    const p = sweepPointers.get(e.pointerId);
+    if (!p) return;   // pointer isn't down (plain mouse hover)
+    const rect = stage.getBoundingClientRect();
+    const x = e.clientX - rect.left, y = e.clientY - rect.top;
+    const dist = Math.hypot(x - p.x, y - p.y);
+    const dt = Math.max(1, e.timeStamp - p.t);
+    // Faster sweep → lighter strikes, like a mallet brushing across the
+    // bosses instead of landing full-weight on each one.
+    const velocity = Math.max(0.3, Math.min(0.85, 0.9 - 0.12 * (dist / dt)));
+    // Walk the drag path in short steps: a fast flick delivers pointermove
+    // events far apart, and sampling only the endpoint would skip over
+    // gongs mid-path.
+    const step = Math.max(2, stageGeom.gongSize / 3);
+    const n = Math.max(1, Math.ceil(dist / step));
+    for (let k = 1; k <= n; k++) {
+      const idx = gongAtPoint(p.x + (x - p.x) * k / n, p.y + (y - p.y) * k / n);
+      if (idx >= 0 && idx !== p.lastGong) sweepGong(idx, velocity);
+      p.lastGong = idx;   // -1 clears it, so re-entering the same gong retriggers
+    }
+    p.x = x; p.y = y; p.t = e.timeStamp;
+  });
+
+  const endSweep = (e) => sweepPointers.delete(e.pointerId);
+  stage.addEventListener('pointerup', endSweep);
+  stage.addEventListener('pointercancel', endSweep);
 }
 
 // Keyboard entry point. For PLAIN note keys, the typing hand decides the
@@ -1645,6 +1772,8 @@ function init() {
   } else {
     window.addEventListener('resize', layoutGongs);
   }
+
+  initSweep(stage);
 
   // Hand selector — switches active hand but keeps the cursor beat position
   document.querySelectorAll('#hand-group .btn').forEach(btn => {
