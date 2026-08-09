@@ -558,6 +558,7 @@ footer {
       <div class="stat"><span class="label">Playback</span><span class="value" id="beatValue">— / —</span></div>
       <div class="stat"><span class="label">มือขวา</span><span class="value" id="rightCount">0 notes</span></div>
       <div class="stat"><span class="label">มือซ้าย</span><span class="value" id="leftCount">0 notes</span></div>
+      <div class="stat"><span class="label">Audio latency</span><span class="value" id="latencyValue" title="ดีเลย์จากระบบเสียงของเครื่อง/หูฟัง — ถ้าสูง (เหลือง/แดง) ลองใช้ลำโพงในตัวหรือหูฟังมีสาย: Bluetooth เพิ่มดีเลย์ 100–300 ms ซึ่งเว็บแก้ให้ไม่ได้">—</span></div>
     </div>
   </section>
 
@@ -843,7 +844,11 @@ let audioCtx = null;
 let masterBus = null;   // every voice → masterBus → limiter → destination
 function ac() {
   if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+    const Ctor = window.AudioContext || window.webkitAudioContext;
+    // latencyHint 0 asks the browser for the SMALLEST output buffer the
+    // hardware allows (lower strike-to-ear delay than 'interactive').
+    try { audioCtx = new Ctor({ latencyHint: 0 }); }
+    catch (_) { audioCtx = new Ctor({ latencyHint: 'interactive' }); }
     // Shared bus + limiter: overlapping voices (fast runs, sweeps, chords)
     // sum WAY past 1.0 — without this the mix hard-clips and sounds fizzy.
     const limiter = audioCtx.createDynamicsCompressor();
@@ -859,6 +864,25 @@ function ac() {
   }
   if (audioCtx.state === 'suspended') audioCtx.resume();
   return audioCtx;
+}
+
+// Best-effort estimate of the delay between a scheduled AudioContext time
+// and the sound actually reaching the listener's ear. Used to (a) sync
+// visual flashes to what is HEARD rather than what is scheduled, and
+// (b) show the player how much latency their audio output adds
+// (Bluetooth headphones are the usual offender at 100–300 ms).
+function audioLatencyMs() {
+  if (!audioCtx) return 0;
+  return ((audioCtx.baseLatency || 0) + (audioCtx.outputLatency || 0)) * 1000;
+}
+
+function updateLatencyStat() {
+  const el = document.getElementById('latencyValue');
+  if (!el) return;
+  if (!audioCtx) { el.textContent = '—'; return; }
+  const ms = Math.round(audioLatencyMs());
+  el.textContent = ms + ' ms';
+  el.style.color = ms > 80 ? 'var(--red)' : ms > 40 ? 'var(--gold)' : '';
 }
 
 // Synthesize a bronze-gong tone at given freq with inharmonic partials.
@@ -893,7 +917,7 @@ function playGongFreq(freq, when, velocity = 1) {
     const dur = decay * decayScale;
     const env = ctx.createGain();
     env.gain.setValueAtTime(0, t);
-    env.gain.linearRampToValueAtTime(ratio === 1 ? g : g * upperMix, t + 0.004);
+    env.gain.linearRampToValueAtTime(ratio === 1 ? g : g * upperMix, t + 0.002);
     env.gain.exponentialRampToValueAtTime(0.0006, t + dur);
     osc.connect(env); env.connect(master);
     osc.start(t);
@@ -1037,7 +1061,7 @@ function chingSchedulerTick() {
   while (ching.nextTime < ctx.currentTime + CHING_LOOKAHEAD_S) {
     const isChap = ching.pattern === 'ching-chap' && ching.stroke % 2 === 1;
     playChingStroke(ching.nextTime, isChap);
-    const ms = Math.max(0, (ching.nextTime - ctx.currentTime) * 1000 - 5);
+    const ms = Math.max(0, (ching.nextTime - ctx.currentTime) * 1000 + audioLatencyMs() - 5);
     ching.visualTimers.push(setTimeout(() => flashChingIndicator(isChap), ms));
     ching.nextTime += 60 / ching.bpm;
     ching.stroke++;
@@ -1694,7 +1718,21 @@ function applyImport(data) {
 // =====================================================================
 // Notation rendering
 // =====================================================================
+// Rebuilding the whole grid is too heavy to run synchronously on every
+// strike — during fast playing it delays processing of the NEXT tap or
+// keypress, which is audible as rhythm jitter. Audio is always scheduled
+// before this is called, so the rebuild is coalesced to one per frame.
+let notationRenderQueued = false;
 function renderNotation() {
+  if (notationRenderQueued) return;
+  notationRenderQueued = true;
+  requestAnimationFrame(() => {
+    notationRenderQueued = false;
+    renderNotationNow();
+  });
+}
+
+function renderNotationNow() {
   const root = document.getElementById('notation');
   root.innerHTML = '';
 
@@ -1781,7 +1819,9 @@ function startPlayback() {
       const t = state.playStart + beat * beatDur;
       const master = playGong(gong, t);
       if (master) playbackActiveMasters.push(master);
-      const ms = Math.max(0, (t - ctx.currentTime) * 1000 - 5);
+      // + audioLatencyMs(): flash when the note is HEARD, not when the
+      // audio thread starts rendering it
+      const ms = Math.max(0, (t - ctx.currentTime) * 1000 + audioLatencyMs() - 5);
       playbackVisualTimers.push(setTimeout(() => flashGong(gong), ms));
     }
   }
@@ -1874,6 +1914,10 @@ function init() {
   updateCounts();
   updateCursorStatus();
   buildIMEInfographic();
+
+  // Live audio-latency readout (outputLatency is only known once the
+  // AudioContext exists and is running, so poll rather than set once).
+  setInterval(updateLatencyStat, 2000);
 
   // Re-layout the horseshoe whenever the stage size changes (window resize,
   // panel reflow, etc.). ResizeObserver fires once on observe(), so the
