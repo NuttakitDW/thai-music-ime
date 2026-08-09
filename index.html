@@ -169,6 +169,28 @@ section.panel h3 {
   width: 60px;
 }
 
+/* ฉิ่ง metronome beat indicator */
+.ching-indicator {
+  min-width: 46px; text-align: center;
+  padding: 6px 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--border); border-radius: 8px;
+  font-size: 13px; font-weight: 700;
+  font-family: "SF Mono", Menlo, monospace;
+  color: var(--dim);
+  transition: color 0.25s, border-color 0.25s, box-shadow 0.25s;
+}
+.ching-indicator.hit-ching {
+  color: var(--accent); border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(91,158,255,0.45);
+  transition: none;
+}
+.ching-indicator.hit-chap {
+  color: var(--gold); border-color: var(--gold);
+  box-shadow: 0 0 8px rgba(255,213,74,0.5);
+  transition: none;
+}
+
 /* Stats */
 .stats {
   display: flex; gap: 26px; flex-wrap: wrap;
@@ -534,6 +556,17 @@ footer {
       <div class="control-group">
         <span class="control-label">วรรค</span>
         <input type="number" id="numVak" class="tempo-input" min="1" max="16" value="1">
+      </div>
+      <div class="control-group">
+        <span class="control-label">ฉิ่ง</span>
+        <button class="btn" id="chingToggle">Start</button>
+        <input type="number" id="chingBpm" class="tempo-input" min="30" max="300" value="120">
+        <span class="control-label">bpm</span>
+        <div class="pill-group" id="ching-pattern-group">
+          <button class="btn active" data-pattern="ching-chap">ฉิ่ง ฉับ</button>
+          <button class="btn" data-pattern="ching-only">ฉิ่งล้วน</button>
+        </div>
+        <span class="ching-indicator" id="chingIndicator">·</span>
       </div>
       <div class="control-group" style="margin-left:auto;">
         <button class="toggle on" id="recordToggle" role="switch" aria-checked="true">
@@ -943,6 +976,144 @@ function playGong(idx, when, velocity = 1) {
   const master = playGongFreq(FREQS[idx], when, velocity);
   if (live) liveVoiceByGong[idx] = master;
   return master;
+}
+
+// =====================================================================
+// ฉิ่ง metronome — keeps จังหวะ alongside the gongs.
+// Alternates the open ringing "ฉิ่ง" (unstressed beat) with the damped
+// "ฉับ" (stressed downbeat). Synthesized like the gongs: two slightly
+// detuned cymbal cups give the characteristic shimmer of real bronze
+// ฉิ่ง; ฉับ is the same strike but choked immediately (cups pressed
+// together), so it's short, noisy, and dead.
+// =====================================================================
+function playChingStroke(when, isChap) {
+  const ctx = ac();
+  const t = when ?? ctx.currentTime;
+  const master = ctx.createGain();
+  master.gain.value = isChap ? 0.3 : 0.22;
+  // ฉิ่ง has no low-frequency body — everything lives above ~1.5 kHz
+  const hp = ctx.createBiquadFilter();
+  hp.type = 'highpass'; hp.frequency.value = 1400; hp.Q.value = 0.5;
+  master.connect(hp); hp.connect(masterBus);
+
+  // Two cymbal cups a few Hz apart → the beating shimmer of a real pair.
+  const cups = [2465, 2510];
+  // Inharmonic partials of a small thick cup cymbal.
+  const partials = [
+    { ratio: 1.00, gain: 0.55 },
+    { ratio: 1.51, gain: 0.22 },
+    { ratio: 2.32, gain: 0.16 },
+    { ratio: 3.17, gain: 0.10 },
+    { ratio: 4.28, gain: 0.05 },
+  ];
+  // Open ฉิ่ง rings ~1.6 s; ฉับ is choked within ~90 ms.
+  const ringDur = isChap ? 0.09 : 1.6;
+  cups.forEach((f0, ci) => {
+    partials.forEach(({ratio, gain: g}) => {
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = f0 * ratio * (ci ? 1.003 : 1);
+      // upper partials fade sooner on the open stroke
+      const dur = isChap ? ringDur : ringDur / (0.6 + 0.4 * ratio);
+      const env = ctx.createGain();
+      env.gain.setValueAtTime(0, t);
+      env.gain.linearRampToValueAtTime(g * 0.5, t + 0.002);
+      env.gain.exponentialRampToValueAtTime(0.0005, t + dur);
+      osc.connect(env); env.connect(master);
+      osc.start(t);
+      osc.stop(t + dur + 0.05);
+    });
+  });
+
+  // Metallic contact noise at the attack — stronger on ฉับ where the
+  // cups slap flat against each other.
+  const sr = ctx.sampleRate;
+  const nLen = Math.floor(0.025 * sr);
+  const buf = ctx.createBuffer(1, nLen, sr);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < nLen; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / nLen);
+  const noise = ctx.createBufferSource();
+  noise.buffer = buf;
+  const nf = ctx.createBiquadFilter();
+  nf.type = 'bandpass'; nf.frequency.value = 5200; nf.Q.value = 0.8;
+  const ne = ctx.createGain();
+  ne.gain.setValueAtTime(isChap ? 0.5 : 0.25, t);
+  ne.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+  noise.connect(nf); nf.connect(ne); ne.connect(master);
+  noise.start(t);
+
+  return master;
+}
+
+// Lookahead scheduler (same idea as the classic Web Audio metronome):
+// a coarse setInterval wakes up every 40 ms and schedules any strokes
+// falling inside the next 150 ms at exact AudioContext times, so timing
+// stays sample-accurate even when the tab's timers jitter.
+const ching = {
+  running: false,
+  bpm: 120,
+  pattern: 'ching-chap',  // 'ching-chap' = alternate; 'ching-only' = ฉิ่งล้วน (all open strokes)
+  nextTime: 0,
+  stroke: 0,          // in ching-chap: even = ฉิ่ง (upbeat), odd = ฉับ (downbeat)
+  timer: null,
+  visualTimers: [],
+};
+const CHING_LOOKAHEAD_S = 0.15;
+const CHING_TICK_MS = 40;
+
+function chingSchedulerTick() {
+  if (!ching.running) return;
+  const ctx = ac();
+  while (ching.nextTime < ctx.currentTime + CHING_LOOKAHEAD_S) {
+    const isChap = ching.pattern === 'ching-chap' && ching.stroke % 2 === 1;
+    playChingStroke(ching.nextTime, isChap);
+    const ms = Math.max(0, (ching.nextTime - ctx.currentTime) * 1000 - 5);
+    ching.visualTimers.push(setTimeout(() => flashChingIndicator(isChap), ms));
+    ching.nextTime += 60 / ching.bpm;
+    ching.stroke++;
+  }
+  // drop timers that have already fired so the list doesn't grow forever
+  if (ching.visualTimers.length > 32) ching.visualTimers.splice(0, 16);
+}
+
+function flashChingIndicator(isChap) {
+  const el = document.getElementById('chingIndicator');
+  el.textContent = isChap ? 'ฉับ' : 'ฉิ่ง';
+  el.classList.remove('hit-ching', 'hit-chap');
+  void el.offsetWidth;   // restart the flash even on repeated same-class hits
+  el.classList.add(isChap ? 'hit-chap' : 'hit-ching');
+  const glowMs = Math.min(180, (60 / ching.bpm) * 500);
+  ching.visualTimers.push(setTimeout(() => {
+    el.classList.remove('hit-ching', 'hit-chap');
+  }, glowMs));
+}
+
+function startChing() {
+  if (ching.running) return;
+  const ctx = ac();
+  ching.running = true;
+  ching.stroke = 0;
+  ching.nextTime = ctx.currentTime + 0.1;
+  ching.timer = setInterval(chingSchedulerTick, CHING_TICK_MS);
+  chingSchedulerTick();
+  const btn = document.getElementById('chingToggle');
+  btn.classList.add('active');
+  btn.textContent = 'Stop';
+}
+
+function stopChing() {
+  if (!ching.running) return;
+  ching.running = false;
+  clearInterval(ching.timer);
+  ching.timer = null;
+  ching.visualTimers.forEach(clearTimeout);
+  ching.visualTimers = [];
+  const el = document.getElementById('chingIndicator');
+  el.textContent = '·';
+  el.classList.remove('hit-ching', 'hit-chap');
+  const btn = document.getElementById('chingToggle');
+  btn.classList.remove('active');
+  btn.textContent = 'Start';
 }
 
 // =====================================================================
@@ -1803,6 +1974,26 @@ function init() {
     updateCounts();
     updateCursorStatus();
     renderNotation();
+  });
+
+  // ฉิ่ง metronome — independent of gong playback; speed adjustable live
+  document.getElementById('chingToggle').addEventListener('click', () => {
+    ching.running ? stopChing() : startChing();
+  });
+  const chingBpmInput = document.getElementById('chingBpm');
+  chingBpmInput.addEventListener('change', () => {
+    const v = Math.max(30, Math.min(300, +chingBpmInput.value || 120));
+    ching.bpm = v;
+    chingBpmInput.value = v;
+  });
+  document.querySelectorAll('#ching-pattern-group .btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      ching.pattern = btn.dataset.pattern;
+      ching.stroke = 0;   // restart the cycle so ching-chap begins on ฉิ่ง
+      document.querySelectorAll('#ching-pattern-group .btn').forEach(b => {
+        b.classList.toggle('active', b === btn);
+      });
+    });
   });
 
   // Transport
