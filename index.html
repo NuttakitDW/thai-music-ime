@@ -849,21 +849,63 @@ function ac() {
     // hardware allows (lower strike-to-ear delay than 'interactive').
     try { audioCtx = new Ctor({ latencyHint: 0 }); }
     catch (_) { audioCtx = new Ctor({ latencyHint: 'interactive' }); }
-    // Shared bus + limiter: overlapping voices (fast runs, sweeps, chords)
-    // sum WAY past 1.0 — without this the mix hard-clips and sounds fizzy.
-    const limiter = audioCtx.createDynamicsCompressor();
-    limiter.threshold.value = -10;
-    limiter.knee.value = 6;
-    limiter.ratio.value = 16;
-    limiter.attack.value = 0.002;
-    limiter.release.value = 0.16;
+    // Shared bus + soft clipper: overlapping voices (fast runs, sweeps,
+    // chords) sum WAY past 1.0 — without this the mix hard-clips and
+    // sounds fizzy.
+    //
+    // This used to be a DynamicsCompressorNode. That node runs a ~6 ms
+    // look-ahead pre-delay in every browser engine, so EVERY strike was
+    // pushed 6 ms late — and it isn't counted in baseLatency/outputLatency,
+    // so the readout under-reported it. A WaveShaper soft clipper does the
+    // same job with exactly zero delay (oversample MUST stay 'none';
+    // 2x/4x oversampling reintroduces filter latency).
+    const clip = audioCtx.createWaveShaper();
+    clip.curve = softClipCurve();
+    clip.oversample = 'none';
     masterBus = audioCtx.createGain();
     masterBus.gain.value = 0.9;
-    masterBus.connect(limiter);
-    limiter.connect(audioCtx.destination);
+    masterBus.connect(clip);
+    clip.connect(audioCtx.destination);
   }
   if (audioCtx.state === 'suspended') audioCtx.resume();
   return audioCtx;
+}
+
+// Unity gain below KNEE, then a soft tanh knee asymptotic to full scale.
+// One note passes through completely untouched; only genuinely overlapping
+// voices get rounded off, so nothing "pumps" the way the compressor did.
+function softClipCurve() {
+  const KNEE = 0.6, N = 2048;
+  const curve = new Float32Array(N);
+  for (let i = 0; i < N; i++) {
+    const x = (i / (N - 1)) * 2 - 1;
+    const a = Math.abs(x);
+    const y = a <= KNEE ? a : KNEE + (1 - KNEE) * Math.tanh((a - KNEE) / (1 - KNEE));
+    curve[i] = Math.sign(x) * y;
+  }
+  return curve;
+}
+
+// Build the AudioContext + start the hardware output on the FIRST user
+// gesture anywhere on the page, not on the first strike. Cold-starting an
+// AudioContext costs tens of milliseconds and (on iOS/Safari) begins
+// suspended with an async resume — so without this the very first ลูกฆ้อง
+// of a session is always noticeably late.
+let audioPrimed = false;
+function primeAudio() {
+  if (audioPrimed) return;
+  audioPrimed = true;
+  const ctx = ac();
+  // A one-sample silent buffer forces the output device open on iOS.
+  const buf = ctx.createBuffer(1, 1, ctx.sampleRate);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  src.connect(ctx.destination);
+  src.start();
+  // outputLatency reads 0 until the device has actually opened, so the
+  // first readout right here would report an impossibly low number. Poll a
+  // few times over the first second until it settles.
+  [0, 150, 400, 900].forEach(ms => setTimeout(updateLatencyStat, ms));
 }
 
 // Best-effort estimate of the delay between a scheduled AudioContext time
@@ -883,6 +925,19 @@ function updateLatencyStat() {
   const ms = Math.round(audioLatencyMs());
   el.textContent = ms + ' ms';
   el.style.color = ms > 80 ? 'var(--red)' : ms > 40 ? 'var(--gold)' : '';
+}
+
+// One shared mallet-noise burst, generated lazily and cached.
+let malletNoise = null;
+function malletNoiseBuffer(ctx) {
+  if (malletNoise && malletNoise.sampleRate === ctx.sampleRate) return malletNoise;
+  const sr = ctx.sampleRate;
+  const bufLen = Math.floor(0.03 * sr);
+  const buf = ctx.createBuffer(1, bufLen, sr);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < bufLen; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufLen);
+  malletNoise = buf;
+  return buf;
 }
 
 // Synthesize a bronze-gong tone at given freq with inharmonic partials.
@@ -917,25 +972,28 @@ function playGongFreq(freq, when, velocity = 1) {
     const dur = decay * decayScale;
     const env = ctx.createGain();
     env.gain.setValueAtTime(0, t);
-    env.gain.linearRampToValueAtTime(ratio === 1 ? g : g * upperMix, t + 0.002);
+    // 0.8 ms attack, not 2 ms. The ear places a percussive event by its
+    // transient edge, so a slower ramp reads as a LATER note even when the
+    // scheduling is identical — this is the perceptual half of the latency.
+    env.gain.linearRampToValueAtTime(ratio === 1 ? g : g * upperMix, t + 0.0008);
     env.gain.exponentialRampToValueAtTime(0.0006, t + dur);
     osc.connect(env); env.connect(master);
     osc.start(t);
     osc.stop(t + dur + 0.05);
   });
 
-  // brief mallet noise burst for the strike attack
-  const sr = ctx.sampleRate;
-  const bufLen = Math.floor(0.03 * sr);
-  const buf = ctx.createBuffer(1, bufLen, sr);
-  const data = buf.getChannelData(0);
-  for (let i = 0; i < bufLen; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufLen);
+  // Brief mallet noise burst for the strike attack. The buffer is built
+  // once and reused: filling ~1400 random samples on every strike burned
+  // main-thread time (and churned GC) right in the middle of the input
+  // path, which showed up as timing jitter on fast runs.
   const noise = ctx.createBufferSource();
-  noise.buffer = buf;
+  noise.buffer = malletNoiseBuffer(ctx);
   const noiseFilter = ctx.createBiquadFilter();
   noiseFilter.type = 'bandpass';
   noiseFilter.frequency.value = Math.min(3500, freq * 6);
-  noiseFilter.Q.value = 1.4;
+  // Broader skirt (was Q 1.4) — a wideband click gives the ear a crisper
+  // onset to lock onto, which is what makes the strike feel "on the beat".
+  noiseFilter.Q.value = 0.85;
   const noiseEnv = ctx.createGain();
   noiseEnv.gain.setValueAtTime(0.2 * velocity * velocity, t);
   noiseEnv.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
@@ -1194,7 +1252,26 @@ function layoutGongs() {
   }
 }
 
+// Flashing forces a synchronous reflow (`offsetWidth`) to restart the CSS
+// animation. Run inline, that reflow lands between the strike that queued
+// it and the NEXT strike's event — and while recording the notation grid is
+// usually dirty, so it can cost milliseconds. Audio is always scheduled
+// before flashGong() is called, so the whole visual pass is coalesced into
+// one rAF and never sits on the input path.
+let pendingFlash = null;
 function flashGong(idx) {
+  if (pendingFlash === null) {
+    pendingFlash = new Set();
+    requestAnimationFrame(() => {
+      const batch = pendingFlash;
+      pendingFlash = null;
+      batch.forEach(flashGongNow);
+    });
+  }
+  pendingFlash.add(idx);
+}
+
+function flashGongNow(idx) {
   const el = document.querySelector(`.gong[data-idx="${idx}"]`);
   if (!el) return;
   el.classList.remove('playing');
@@ -1353,12 +1430,14 @@ function typeNote(hand, baseIdx) {
     else                 rightNote = primary;
   }
 
-  // Sound + flash now (not 55 ms later when the chord buffer commits).
-  if (leftNote  !== null) { playGong(leftNote);  flashGong(leftNote);  }
-  if (rightNote !== null && rightNote !== leftNote) {
-    playGong(rightNote);
-    flashGong(rightNote);
-  }
+  // Sound now (not 55 ms later when the chord buffer commits). BOTH notes
+  // are scheduled before any visual work, so a คู่ 8 / คู่ 4 pair always
+  // lands in the same audio render quantum instead of being split by the
+  // flash in between.
+  if (leftNote  !== null) playGong(leftNote);
+  if (rightNote !== null && rightNote !== leftNote) playGong(rightNote);
+  if (leftNote  !== null) flashGong(leftNote);
+  if (rightNote !== null && rightNote !== leftNote) flashGong(rightNote);
 
   if (!state.isRecording) return;
 
@@ -1918,6 +1997,12 @@ function init() {
   // Live audio-latency readout (outputLatency is only known once the
   // AudioContext exists and is running, so poll rather than set once).
   setInterval(updateLatencyStat, 2000);
+
+  // Open the audio device on the first gesture of the session — see
+  // primeAudio(). Capture phase so it runs ahead of every other handler.
+  ['pointerdown', 'keydown', 'touchstart'].forEach(ev => {
+    window.addEventListener(ev, primeAudio, { capture: true, once: true, passive: true });
+  });
 
   // Re-layout the horseshoe whenever the stage size changes (window resize,
   // panel reflow, etc.). ResizeObserver fires once on observe(), so the
