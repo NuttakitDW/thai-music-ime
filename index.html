@@ -212,69 +212,42 @@ section.panel h3 {
   --gong-size: 50px;   /* overridden by JS at runtime */
   position: relative;
   width: 100%;
-  aspect-ratio: 1.5 / 1;
+  /* aspect ratio MUST match the photo (1012×650) exactly — the gong
+     hotspots are placed at normalized photo coordinates, so any
+     letterboxing would break the tap/sweep alignment. */
+  aspect-ratio: 1012 / 650;
   max-width: 920px;
-  max-height: 620px;
   margin: 0 auto;
-  background: radial-gradient(ellipse at center 80%, rgba(91,158,255,0.04), transparent 60%);
+  background: url('khong-wong-yai.png') center / 100% 100% no-repeat;
+  border-radius: 14px;
   user-select: none;
   touch-action: none;   /* กวาดด้วยนิ้วบนมือถือได้ ไม่กลายเป็น scroll */
 }
+/* Invisible hotspot over each gong in the photo; lights up on hover/strike */
 .gong {
   position: absolute;
   width: var(--gong-size);
   height: var(--gong-size);
   border-radius: 50%;
-  background: radial-gradient(circle at 38% 32%, #d4a45c 0%, #8c6634 48%, #3a2410 100%);
-  border: 2px solid #1a0f06;
-  box-shadow:
-    0 4px 12px rgba(0,0,0,0.45),
-    inset 0 -3px 5px rgba(0,0,0,0.4),
-    inset 0 2px 3px rgba(255,200,120,0.2);
   cursor: pointer;
-  transition: transform 0.08s, box-shadow 0.15s;
+  transition: box-shadow 0.15s;
   transform: translate(-50%, -50%);
-}
-.gong::after {
-  content: '';
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  width: calc(var(--gong-size) * 0.38);
-  height: calc(var(--gong-size) * 0.38);
-  border-radius: 50%;
-  background: radial-gradient(circle at 38% 32%, #ffdc94 0%, #b88848 50%, #5a3a18 100%);
-  box-shadow:
-    inset 0 -1px 2px rgba(0,0,0,0.4),
-    0 1px 1px rgba(0,0,0,0.3);
 }
 .gong:hover {
-  transform: translate(-50%, -50%) scale(1.06);
   box-shadow:
-    0 6px 18px rgba(255,213,74,0.35),
-    inset 0 -3px 5px rgba(0,0,0,0.4),
-    inset 0 2px 3px rgba(255,200,120,0.2);
+    0 0 0 2px rgba(255,213,74,0.55),
+    0 0 16px 4px rgba(255,213,74,0.3);
 }
 .gong.playing {
   animation: gong-hit 0.4s ease-out;
 }
 @keyframes gong-hit {
-  0% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 0 0 0 rgba(255,213,74,0.85), inset 0 -3px 5px rgba(0,0,0,0.4); }
-  40% { transform: translate(-50%, -50%) scale(1.12); box-shadow: 0 0 28px 10px rgba(255,213,74,0.45), inset 0 -3px 5px rgba(0,0,0,0.4); }
-  100% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 4px 12px rgba(0,0,0,0.45), inset 0 -3px 5px rgba(0,0,0,0.4); }
+  0%   { box-shadow: 0 0 0 3px rgba(255,213,74,0.9),  0 0 6px 2px rgba(255,213,74,0.6); }
+  40%  { box-shadow: 0 0 0 4px rgba(255,213,74,0.75), 0 0 30px 12px rgba(255,213,74,0.5); }
+  100% { box-shadow: 0 0 0 0 rgba(255,213,74,0), 0 0 0 0 rgba(255,213,74,0); }
 }
-.gong .note-label {
-  position: absolute;
-  /* left, top and transform are set inline by layoutGongs(): each label sits
-     radially OUTWARD from the horseshoe center, never above its own gong
-     (which would collide with the neighbour above on the curved sides). */
-  font-size: clamp(11px, calc(var(--gong-size) * 0.26), 15px);
-  font-weight: 600; color: var(--text);
-  font-family: "Sukhumvit Set", "Sarabun", "Noto Sans Thai", -apple-system, sans-serif;
-  pointer-events: none;
-  white-space: nowrap;
-  line-height: 1;
-}
+/* The photo already carries the note names painted on the gongs */
+.gong .note-label { display: none; }
 .player-mark {
   position: absolute;
   left: 50%; bottom: 8%;
@@ -520,9 +493,6 @@ footer {
   main { padding: 18px; }
   .gong-stage { aspect-ratio: 1.2 / 1; }
   .beat-cell { font-size: 13px; }
-}
-@media (max-width: 540px) {
-  .gong-stage { aspect-ratio: 1 / 1; }
 }
 </style>
 </head>
@@ -1147,85 +1117,56 @@ function renderGongs() {
   layoutGongs();
 }
 
-// Position the 16 gongs around a 270° arc (opening at the bottom). Each note
-// label is anchored RADIALLY OUTWARD from the horseshoe center — never just
-// "above" its gong, since on the curved sides "above" overlaps the neighbour.
-// gongSize and the horseshoe center are picked from the actual stage so the
-// outermost labels still fit inside the stage at any viewport.
+// The stage shows a top-down photo of a real ฆ้องวงใหญ่
+// (khong-wong-yai.png, 1012×650). Each gong's hotspot is placed at the
+// disc's centre in the photo, expressed as normalized (x/W, y/H)
+// coordinates measured by automated circle detection on the image.
+// Index order matches FREQS: 0 = ฺม (lowest, bottom-left) … 15 = ฟํ
+// (highest, bottom-right).
+const GONG_POS = [
+  [0.2415, 0.7705],   // ฺม
+  [0.1621, 0.6849],   // ฺฟ
+  [0.1140, 0.5205],   // ฺซ
+  [0.1617, 0.3848],   // ฺล
+  [0.2253, 0.2151],   // ฺท
+  [0.3198, 0.1485],   // ด
+  [0.4132, 0.0992],   // ร
+  [0.5088, 0.0942],   // ม
+  [0.6286, 0.1271],   // ฟ
+  [0.6950, 0.1600],   // ซ
+  [0.7709, 0.2443],   // ล
+  [0.8125, 0.3971],   // ท
+  [0.8406, 0.4928],   // ดํ
+  [0.8281, 0.6334],   // รํ
+  [0.7844, 0.7449],   // มํ
+  [0.7261, 0.8507],   // ฟํ
+];
+// Gong disc diameter measured in the photo ≈ 96px of 1012 → 0.095 of width
+const GONG_DIAMETER_NORM = 0.095;
+
+// The stage's CSS aspect-ratio matches the photo exactly, so normalized
+// photo coordinates map straight onto stage-local pixels.
 function layoutGongs() {
   const stage = document.getElementById('gong-stage');
   const w = stage.clientWidth;
   const h = stage.clientHeight;
-  if (w < 120 || h < 120) return;
+  if (w < 120 || h < 60) return;
 
-  // Label-layout knobs.
-  //   labelGap        — clear pixels between gong rim and label inner edge
-  //   labelHalfBox    — approx half of a label's bounding box (any axis)
-  //   sideMargin / topMargin / bottomMargin — keep labels off the stage edge
-  const labelGap     = 8;
-  const labelHalfBox = 13;
-  const sideMargin   = 10;
-  const topMargin    = 10;
-  const bottomMargin = 12;
-
-  // 15 gaps × 18° on a 270° arc.
-  //   chord between adjacent gong centers ≈ 2·R·sin(9°) ≈ 0.313·R
-  //   horizontal span of gong centers ≈ 1.976·R
-  //   vertical span   ≈ 1.695·R    (sin 81° − sin 225° = 0.988 + 0.707)
-  // Tight pack: chord ≥ 1.10·gongSize → R ≈ 3.51·gongSize.
-  //
-  // Label CENTER sits at distance  R + gongSize/2 + labelGap + labelHalfBox
-  // from horseshoe center. The label box itself extends ±labelHalfBox around
-  // that center. The constraints below ensure even the topmost / leftmost /
-  // rightmost label fits inside the stage.
-  const padRadial = labelGap + labelHalfBox;     // distance from gong-rim to label center
-  // gsFromH derived from: 1.695·(4.01·gongSize + padRadial) + 2·labelHalfBox + topMargin + bottomMargin ≤ h
-  // gsFromW derived from: 1.976·(4.01·gongSize + padRadial) + 2·labelHalfBox + 2·sideMargin            ≤ w
-  const gsFromH = (h - 1.695 * padRadial - 2 * labelHalfBox - topMargin - bottomMargin) / (1.695 * 4.01);
-  const gsFromW = (w - 1.976 * padRadial - 2 * labelHalfBox - 2 * sideMargin)          / (1.976 * 4.01);
-  let gongSize = Math.min(gsFromW, gsFromH);
-  gongSize = Math.max(24, Math.min(80, gongSize));
-  const R = 3.51 * gongSize;
-  const labelCenterDist = gongSize / 2 + labelGap + labelHalfBox;
-  const reachL = R + labelCenterDist;            // distance from horseshoe centre to outermost label centres
-
-  // Anchor the horseshoe so the topmost label's top edge sits at topMargin.
-  const cx = w / 2;
-  const cy = topMargin + labelHalfBox + 0.988 * reachL;
-
+  const gongSize = Math.max(24, GONG_DIAMETER_NORM * w);
   stage.style.setProperty('--gong-size', gongSize + 'px');
 
   stageGeom.gongSize = gongSize;
   stageGeom.positions.length = 0;
 
   for (let i = 0; i < NUM_GONGS; i++) {
-    const angleDeg = 225 - i * (270 / (NUM_GONGS - 1));
-    const angleRad = angleDeg * Math.PI / 180;
-    const cosA = Math.cos(angleRad);
-    const sinA = Math.sin(angleRad);
-
-    const gx = cx + R * cosA;
-    const gy = cy - R * sinA;
-
+    const gx = GONG_POS[i][0] * w;
+    const gy = GONG_POS[i][1] * h;
     stageGeom.positions[i] = { x: gx, y: gy };
 
     const gong = stage.querySelector(`.gong[data-idx="${i}"]`);
     if (!gong) continue;
     gong.style.left = gx + 'px';
     gong.style.top  = gy + 'px';
-
-    // Radial-outward offset for the label, relative to the gong's centre.
-    // The gong has transform: translate(-50%, -50%), so its own (0,0) lives
-    // at the box top-left. Its visual centre is at (gongSize/2, gongSize/2)
-    // within its own box. We add the radial offset to that.
-    const lx = labelCenterDist * cosA;
-    const ly = -labelCenterDist * sinA;
-    const label = gong.querySelector('.note-label');
-    if (label) {
-      label.style.left = (gongSize / 2 + lx) + 'px';
-      label.style.top  = (gongSize / 2 + ly) + 'px';
-      label.style.transform = 'translate(-50%, -50%)';
-    }
   }
 }
 
