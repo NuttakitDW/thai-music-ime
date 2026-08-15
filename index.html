@@ -974,7 +974,7 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
   <!-- Gong stage -->
   <section class="panel">
     <h2>Instrument</h2>
-    <h3>ฆ้องวงใหญ่ · 16 gongs · เสียง 7 เสียง (Thai equidistant 7-tone, no semitones)</h3>
+    <h3>ฆ้องวงใหญ่ · 16 gongs · เสียงไทยกรมศิลป์ (เสียง 7 เสียง, equidistant, no semitones)</h3>
     <div class="gong-stage" id="gong-stage">
       <div class="player-mark">ผู้บรรเลง<br><span style="font-size:9px;letter-spacing:0.5px;text-transform:uppercase;">player</span></div>
     </div>
@@ -1098,11 +1098,11 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
       </table>
 
       <table class="help-table">
-        <caption>Tuning — Thai เสียง 7 เสียง</caption>
+        <caption>Tuning — เสียงไทยกรมศิลป์</caption>
         <tbody>
-          <tr><td>Scale</td><td>7 approximately-equidistant tones per octave</td></tr>
-          <tr><td>Range</td><td>16 gongs, ฺม = 276 Hz → ฟํ = 1225 Hz</td></tr>
-          <tr><td>Step size</td><td>~145–225 cents (never the 100-cent Western half-pitch)</td></tr>
+          <tr><td>Scale</td><td>เสียง 7 เสียง — 7 equidistant tones per octave</td></tr>
+          <tr><td>Range</td><td>16 gongs, ฺม = 280.7 Hz → ฟํ = 1239.6 Hz</td></tr>
+          <tr><td>Step size</td><td>171.4 cents (never the 100-cent Western half-pitch)</td></tr>
         </tbody>
       </table>
 
@@ -1153,17 +1153,19 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
 const NUM_GONGS = 16;
 const BEATS_PER_BAR = 4;
 const BARS_PER_VAK = 8;       // 1 วรรค = 8 ห้อง (1 บรรทัด of Thai notation)
-// Thai เสียง 7 เสียง — 7 approximately-equidistant tones per octave.
-// These specific Hz values are the measured tuning of a real ฆ้องวงใหญ่
-// (hand-tuned bronze gongs deviate slightly from mathematical 2^(1/7));
-// they still have NO Western semitones — adjacent steps are ~145–225
-// cents, never the 100-cent Western half-pitch.
+// เสียงไทยกรมศิลป์ — the Fine Arts Department reference tuning: Thai
+// เสียง 7 เสียง as 7 equidistant tones per octave, a standard reference
+// rather than one instrument's hand-tuned deviations.
+// Anchored at ฺม = 280.7 Hz, every step is 171.4 cents (1200/7 = 171.43;
+// the rounding to 0.1 Hz keeps it within 0.5 cents) and every octave is
+// an exact 2:1 — ม = 561.4 is precisely twice ฺม. There is NO Western
+// semitone anywhere: the smallest step here is over 1.7 half-pitches.
 // Order matches NOTE_BASE below (lowest → highest):
 //   ฺม  ฺฟ  ฺซ  ฺล  ฺท  ·  ด  ร  ม  ฟ  ซ  ล  ท  ·  ดํ  รํ  มํ  ฟํ
 const FREQS = [
-   270,  300,  330,  370,  410,
-   450,  506,  558,  600,  680,  750,  830,
-   915, 1000, 1115, 1225,
+  280.7,  309.9,  342.2,  377.8,  417.2,
+  460.6,  508.4,  561.4,  619.8,  684.4,  755.6,  834.4,
+  921.2, 1016.8, 1122.8, 1239.6,
 ];
 
 // 16 base consonants (lowest → highest). The octave is conveyed visually
