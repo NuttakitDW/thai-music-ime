@@ -576,6 +576,20 @@ section.panel h3 {
   transition: color 0.15s;
 }
 .hud-x:hover { color: var(--text); }
+.hud-acts { display: inline-flex; gap: 10px; }
+
+/* Minimised — keeps only where you are and the one control that matters,
+   so it can sit over the ring without covering it. */
+.tut-hud.min { width: 166px; padding: 9px 11px; }
+.tut-hud.min .hud-strip,
+.tut-hud.min .hud-hint,
+.tut-hud.min #hudPrev,
+.tut-hud.min #hudNext { display: none; }
+.tut-hud.min .hud-controls { grid-template-columns: 1fr; }
+.tut-hud.min .hud-pos { font-size: 11.5px; margin-bottom: 7px; white-space: nowrap; }
+/* the total would wrap to a second line at the collapsed width */
+.hud-total { color: var(--dim); }
+.tut-hud.min .hud-total { display: none; }
 .hud-pos {
   font-family: var(--font-mono); font-size: 13px; color: var(--text);
   letter-spacing: 0.3px; margin-bottom: 8px;
@@ -1236,7 +1250,10 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
 <div class="tut-hud" id="tutHud" hidden>
   <div class="hud-top">
     <span class="hud-tag" id="hudTitle">Tutorial</span>
-    <button class="hud-x" id="hudClose" type="button">ปิด</button>
+    <span class="hud-acts">
+      <button class="hud-x" id="hudMin" type="button">ย่อ</button>
+      <button class="hud-x" id="hudClose" type="button">ปิด</button>
+    </span>
   </div>
   <div class="hud-pos" id="hudPos">—</div>
   <div class="hud-strip" id="hudStrip"></div>
@@ -2722,6 +2739,7 @@ const tutorial = {
   fromSlot: 0,          // จังหวะ the run began at
   resumeSlot: 0,        // จังหวะ the next Play will pick up from
   hudOpen: false,
+  hudMin: false,        // collapsed to position + Pause/Play only
   nextSlot: 0,          // next จังหวะ still to be scheduled
   timer: null,
   shownSlot: -1,
@@ -3118,6 +3136,15 @@ function hideTutorialHud() {
   tutorial.lineEls.forEach(el => el.classList.remove('resume'));
 }
 
+function setTutorialHudMin(min) {
+  tutorial.hudMin = min;
+  const hud = document.getElementById('tutHud');
+  hud.classList.toggle('min', min);
+  document.getElementById('hudMin').textContent = min ? 'ขยาย' : 'ย่อ';
+  renderTutorialHud();
+  positionTutorialHud();   // the collapse changes its height, so re-clamp
+}
+
 function renderTutorialHud() {
   if (!tutorial.hudOpen || !tutorial.compiled) return;
   const slot  = tutorialCursorSlot();
@@ -3128,12 +3155,13 @@ function renderTutorialHud() {
   document.getElementById('hudTitle').textContent = tutorial.compiled.song.title;
   document.getElementById('hudPos').innerHTML =
     `บรรทัด <b>${line + 1}</b> · ห้อง <b>${inVak}</b>` +
-    `<span style="color:var(--dim)"> / ${tutorial.compiled.totalHongs} ห้อง</span>`;
+    `<span class="hud-total"> / ${tutorial.compiled.totalHongs} ห้อง</span>`;
 
   // The ห้อง under the cursor — มือขวา over มือซ้าย, as in the score.
+  // Skipped while collapsed: this rebuilds on every ห้อง change.
   const base = hong * SLOTS_PER_HONG;
   const here = tutorial.playing ? slot : -1;
-  document.getElementById('hudStrip').innerHTML = ['right', 'left'].map(hand =>
+  if (!tutorial.hudMin) document.getElementById('hudStrip').innerHTML = ['right', 'left'].map(hand =>
     '<div class="hud-row">' +
     Array.from({ length: SLOTS_PER_HONG }, (_, s) => {
       const cell = tutorial.compiled[hand][base + s];
@@ -3330,6 +3358,8 @@ function init() {
   document.getElementById('hudPlay').addEventListener('click', () => {
     tutorial.playing ? pauseTutorial() : startTutorialPlayback(tutorial.resumeSlot);
   });
+  document.getElementById('hudMin').addEventListener('click',
+    () => setTutorialHudMin(!tutorial.hudMin));
   document.getElementById('hudPrev').addEventListener('click', () => nudgeTutorialVak(-1));
   document.getElementById('hudNext').addEventListener('click', () => nudgeTutorialVak(+1));
   document.getElementById('hudClose').addEventListener('click', () => {
