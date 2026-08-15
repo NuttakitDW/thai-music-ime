@@ -2508,10 +2508,13 @@ const SONGS = [
     title: 'สาธุการ',
     subtitle: 'ทางฆ้องวงใหญ่',
     kind: 'เพลงหน้าพาทย์ · โหมโรง',
-    rate: 'อัตราสองชั้น',
     sections: '1 ท่อน',
     bpm: 65,                 // ห้อง ต่อ นาที — the source's own tempo
     ching: 'ฉิ่งล้วน',
+    // ฉิ่งล้วน — open stroke only, no ฉับ. The source carries one ฉิ่ง event
+    // per ห้อง, all of them on จังหวะ 4 (จังหวะตก): 432 events, type 0, at
+    // tick 360 of every 480. chingSlot is that จังหวะ, zero-based.
+    chingSlot: 3,
     lines: SATHUKAN_LINES,
   },
 ];
@@ -2574,6 +2577,7 @@ const tutorial = {
   hongEls: [],
   lineEls: [],
   activeMasters: [],
+  chingTimers: [],      // indicator flashes queued for ฉิ่ง already scheduled
 };
 
 function tutSlotDur() { return 60 / tutorial.bpm / SLOTS_PER_HONG; }
@@ -2682,7 +2686,6 @@ function renderSongMeta() {
   const cells = [
     ['เพลง',        song.title + ' · ' + song.subtitle, true],
     ['ประเภท',      song.kind,      false],
-    ['อัตรา',       song.rate,      false],
     ['ความยาว',     totalHongs + ' ห้อง · ' + song.sections, false],
     ['ฉิ่ง',        song.ching,     false],
     ['ตำแหน่ง',     '— / ' + totalHongs, false],
@@ -2715,6 +2718,9 @@ function startTutorialPlayback(fromSlot = 0) {
   primeAudio();
   stopTutorialPlayback(true);
   if (state.isPlaying) stopPlayback(true);   // never run both engines at once
+  // The score carries its own ฉิ่ง, so the free-running metronome would
+  // double it at an unrelated tempo.
+  if (ching.running) stopChing();
 
   const ctx = ac();
   tutorial.playing   = true;
@@ -2742,6 +2748,18 @@ function tutorialScheduler() {
   while (tutorial.nextSlot < totalSlots) {
     const t = tutorial.startTime + (tutorial.nextSlot - tutorial.fromSlot) * dur;
     if (t > horizon) break;
+
+    // ฉิ่ง under the melody — สาธุการ is ฉิ่งล้วน, so every stroke is an open
+    // ฉิ่ง (never ฉับ), one per ห้อง on จังหวะตก.
+    const song = tutorial.compiled.song;
+    if (song.chingSlot != null &&
+        tutorial.nextSlot % SLOTS_PER_HONG === song.chingSlot) {
+      playChingStroke(t, false);
+      const ms = (t - ctx.currentTime) * 1000 + audioLatencyMs() - 5;
+      tutorial.chingTimers.push(setTimeout(() => flashChingIndicator(false),
+                                           Math.max(0, ms)));
+    }
+
     for (const arr of [right, left]) {
       const slot = arr[tutorial.nextSlot];
       if (!slot) continue;
@@ -2816,6 +2834,18 @@ function stopTutorialPlayback(cutAudio = false) {
   if (tutorial.timer) { clearInterval(tutorial.timer); tutorial.timer = null; }
   const wasPlaying = tutorial.playing;
   tutorial.playing = false;
+
+  tutorial.chingTimers.forEach(clearTimeout);
+  tutorial.chingTimers = [];
+  if (wasPlaying) {
+    // flashChingIndicator queues its glow-off into ching.visualTimers; over a
+    // 432-ห้อง run those would pile up unread if the metronome never runs.
+    ching.visualTimers.forEach(clearTimeout);
+    ching.visualTimers = [];
+    const el = document.getElementById('chingIndicator');
+    el.textContent = '·';
+    el.classList.remove('hit-ching', 'hit-chap');
+  }
 
   if (cutAudio && audioCtx) {
     const now = audioCtx.currentTime;
