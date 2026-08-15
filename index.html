@@ -110,6 +110,7 @@ section.panel:nth-of-type(2) { animation-delay: 0.13s; }
 section.panel:nth-of-type(3) { animation-delay: 0.21s; }
 section.panel:nth-of-type(4) { animation-delay: 0.29s; }
 section.panel:nth-of-type(5) { animation-delay: 0.37s; }
+section.panel:nth-of-type(6) { animation-delay: 0.45s; }
 /* corner tick — a sharp green mark, not a wash */
 section.panel::before {
   content: '';
@@ -538,6 +539,222 @@ section.panel h3 {
   box-shadow: 0 0 8px currentColor;
 }
 
+/* =====================================================================
+   Tutorial — full-score reader
+   ===================================================================== */
+.tut-bar {
+  display: flex; gap: 14px; flex-wrap: wrap; align-items: center;
+  margin-bottom: 16px;
+}
+.song-select {
+  background: #040806;
+  border: 1px solid var(--border); border-radius: 3px;
+  padding: 8px 12px;
+  color: var(--text);
+  font-family: var(--font-ui); font-size: 13px;
+  min-width: 230px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.song-select:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(0,217,95,0.22);
+}
+
+/* Song dossier — the machine readout for the loaded score */
+.song-meta {
+  display: flex; gap: 1px; flex-wrap: wrap;
+  background: var(--border);
+  border: 1px solid var(--border); border-radius: 3px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.song-meta .m {
+  flex: 1 1 130px;
+  background: linear-gradient(180deg, var(--panel-2), #040806);
+  padding: 9px 13px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.song-meta .m .k {
+  font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px;
+  color: var(--dim); font-family: var(--font-mono);
+}
+.song-meta .m .v {
+  font-size: 13px; color: var(--text); font-weight: 500;
+  font-family: var(--font-mono);
+}
+.song-meta .m .v.lit { color: var(--accent); }
+
+/* The score body */
+.tut-score {
+  position: relative;          /* scroll anchor for the playing บรรทัด */
+  font-family: var(--font-mono);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-lit) transparent;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 2px 4px 6px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background:
+    linear-gradient(180deg, rgba(0,217,95,0.03), transparent 60px),
+    #040806;
+  border-radius: 3px;
+  scroll-behavior: smooth;
+}
+.tut-score::-webkit-scrollbar { width: 8px; height: 8px; }
+.tut-score::-webkit-scrollbar-thumb { background: var(--border-lit); border-radius: 4px; }
+.tut-score::-webkit-scrollbar-track { background: transparent; }
+
+.tut-line {
+  display: grid;
+  grid-template-columns: 54px 1fr;
+  gap: 8px;
+  align-items: stretch;
+  padding: 7px 8px;
+  min-width: 720px;
+  border-bottom: 1px solid rgba(31,42,34,0.55);
+  scroll-margin-top: 8px;
+}
+.tut-line:last-child { border-bottom: none; }
+.tut-line.playing { background: rgba(0,217,95,0.05); }
+
+/* left gutter — บรรทัด number + practice hand-off */
+.tut-gutter {
+  display: flex; flex-direction: column; gap: 5px;
+  align-items: stretch; justify-content: center;
+}
+.tut-lineno {
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 1px;
+  color: var(--dim);
+  text-align: center;
+}
+.tut-lineno b { display: block; color: var(--muted); font-size: 14px; font-weight: 600; letter-spacing: 0; }
+.tut-line.playing .tut-lineno b { color: var(--accent); }
+.tut-mini {
+  padding: 3px 0;
+  font-size: 9.5px; letter-spacing: 0.6px;
+  font-family: var(--font-ui);
+  background: var(--panel-2); border: 1px solid var(--border);
+  border-radius: 2px; color: var(--muted);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.tut-mini:hover { border-color: var(--accent-deep); color: var(--accent); background: var(--panel-3); }
+.tut-mini:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(0,217,95,0.3); }
+
+.tut-hongs { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
+
+.tut-hong {
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: #050908;
+  overflow: hidden;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+.tut-hong.playing {
+  border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(0,217,95,0.22);
+}
+.tut-hong-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 2px 5px;
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  border-bottom: 1px solid var(--border);
+  font-size: 8.5px; font-family: var(--font-mono);
+  letter-spacing: 0.4px;
+}
+.tut-hong-head .no { color: var(--dim); }
+.tut-hong.playing .tut-hong-head .no { color: var(--accent); }
+.tut-hong-head .ching { color: var(--gold); opacity: 0.62; }
+
+/* two staves: บรรทัดบน = มือขวา, บรรทัดล่าง = มือซ้าย */
+.tut-stave {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  position: relative;
+}
+.tut-stave.left { border-top: 1px solid rgba(31,42,34,0.75); }
+.tut-cell {
+  position: relative;
+  text-align: center;
+  padding: 5px 0;
+  font-size: 14px;
+  line-height: 1.2;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.tut-cell:hover { background: rgba(0,217,95,0.10); }
+.tut-cell.rest { color: var(--dim); }
+/* same register ramp as the practice grid — the legend depends on it.
+   Pitched slightly darker than .beat-cell: 1,400 notes on one screen would
+   otherwise glow into a wash. */
+.tut-cell .nn-low  { color: #2b8f5d; }
+.tut-cell .nn-mid  { color: #14b45a; }
+.tut-cell .nn-high { color: #a8dc55; }
+/* ช่องที่ 4 = จังหวะตก — the beat the phrase lands on */
+.tut-cell.drop { background: rgba(255,255,255,0.022); }
+.tut-cell.hit {
+  background: rgba(198,255,90,0.20);
+  box-shadow: inset 0 0 0 1px var(--high);
+}
+/* สะบัด — two gongs inside one จังหวะ */
+.tut-cell.sabat { font-size: 11.5px; letter-spacing: -0.5px; }
+.tut-cell.sabat .nn { padding-left: 0.02em; padding-right: 0.02em; }
+.tut-cell.sabat::before {
+  content: '';
+  position: absolute; left: 16%; right: 16%; top: 1px;
+  height: 4px;
+  border-top: 1.2px solid var(--gold);
+  border-left: 1.2px solid var(--gold);
+  border-top-left-radius: 5px;
+  opacity: 0.75;
+}
+/* ตีเหลื่อม — struck off-sync with the other hand */
+.tut-late::after {
+  content: '˒';
+  position: absolute; top: 0px; right: 4px;
+  font-size: 13px; color: var(--gold);
+  line-height: 1;
+}
+
+.tut-hand-tags {
+  display: flex; gap: 14px; flex-wrap: wrap;
+  margin: 10px 0 0;
+  font-family: var(--font-mono); font-size: 10.5px;
+  color: var(--dim); letter-spacing: 0.4px;
+}
+.tut-hand-tags b { color: var(--muted); font-weight: 500; }
+
+/* Source credit — the score is someone else's work; say so loudly */
+.credit {
+  margin-top: 16px;
+  padding: 13px 16px;
+  background: rgba(224,165,74,0.05);
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--gold);
+  border-radius: 0 3px 3px 0;
+  font-size: 12px; color: var(--muted); line-height: 1.75;
+}
+.credit .ct {
+  display: block;
+  font-family: var(--font-mono); font-size: 9px;
+  text-transform: uppercase; letter-spacing: 2px;
+  color: var(--gold); margin-bottom: 4px;
+}
+.credit a { color: var(--accent); text-decoration: none; border-bottom: 1px solid rgba(0,217,95,0.35); }
+.credit a:hover { color: #2bf07d; border-bottom-color: #2bf07d; }
+.credit strong { color: var(--text); font-weight: 600; }
+
+@media (max-width: 640px) {
+  .tut-line { grid-template-columns: 46px 1fr; }
+  .tut-mini { font-size: 8.5px; letter-spacing: 0; padding: 4px 1px; }
+  .song-select { min-width: 0; width: 100%; }
+}
+
 /* Help text */
 .help-text {
   margin-top: 12px;
@@ -767,6 +984,65 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
       <div class="legend-item"><span class="legend-dot" style="color:var(--mid)"></span>เสียงกลาง (mid)</div>
       <div class="legend-item"><span class="legend-dot" style="color:var(--high)"></span>เสียงสูง (high)</div>
       <div class="legend-item"><span class="legend-dot" style="color:var(--dim)"></span>หยุด (rest, −)</div>
+    </div>
+  </section>
+
+  <div class="section-spacer"></div>
+
+  <!-- Tutorial — read a full traditional score -->
+  <section class="panel">
+    <h2>Tutorial</h2>
+    <h3>เรียนเพลง · อ่านโน้ตทั้งเพลง แล้วเล่นตาม</h3>
+
+    <div class="tut-bar">
+      <div class="control-group">
+        <span class="control-label">เพลง</span>
+        <select class="song-select" id="songSelect" aria-label="เลือกเพลง"></select>
+      </div>
+      <div class="control-group">
+        <span class="control-label">Tempo</span>
+        <input type="number" id="tutBpm" class="tempo-input" min="30" max="300" value="65">
+        <span class="control-label">bpm</span>
+      </div>
+      <div class="control-group" style="margin-left:auto;">
+        <button class="btn primary" id="tutPlayBtn">Play</button>
+        <button class="btn" id="tutStopBtn">Stop</button>
+        <button class="btn" id="tutTopBtn">ต้นเพลง</button>
+      </div>
+    </div>
+
+    <div class="song-meta" id="songMeta"></div>
+
+    <div class="tut-score" id="tutScore"></div>
+
+    <p class="tut-hand-tags">
+      <span><b>บรรทัดบน</b> = มือขวา</span>
+      <span><b>บรรทัดล่าง</b> = มือซ้าย</span>
+      <span><b>ช่องที่ 4</b> = จังหวะตก</span>
+      <span><b>˒</b> = ตีเหลื่อม (ไม่ลงพร้อมอีกมือ)</span>
+      <span><b>⌐</b> = สะบัด (สองเสียงในหนึ่งจังหวะ)</span>
+      <span><b>−</b> = ไม่ตี</span>
+    </p>
+
+    <div class="legend">
+      <div class="legend-item"><span class="legend-dot" style="color:var(--low)"></span>เสียงต่ำ (low)</div>
+      <div class="legend-item"><span class="legend-dot" style="color:var(--mid)"></span>เสียงกลาง (mid)</div>
+      <div class="legend-item"><span class="legend-dot" style="color:var(--high)"></span>เสียงสูง (high)</div>
+      <div class="legend-item"><span class="legend-dot" style="color:var(--gold)"></span>สะบัด / ตีเหลื่อม</div>
+    </div>
+
+    <p class="help-note" style="margin-top:12px;">
+      กดที่ตัวโน้ตเพื่อฟังเสียงลูกฆ้องนั้นทีละเม็ด · กด <strong>ฝึกวรรคนี้</strong>
+      ข้างบรรทัด เพื่อส่งวรรคนั้น (8 ห้อง) ลงกริด Notation ข้างบน แล้วซ้อมพิมพ์ตามด้วย IME
+      — โน้ตเดิมในกริดจะถูกแทนที่
+    </p>
+
+    <div class="credit">
+      <span class="ct">Score source · ที่มาของโน้ต</span>
+      โน้ตเพลง <strong>สาธุการ ทางฆ้องวงใหญ่</strong> ถอดและเผยแพร่โดย
+      <a href="https://thaimusichub.com/scores/sathukan" target="_blank" rel="noopener noreferrer">ThaiMusicHub</a>
+      — ผลงานของ <strong>ARAN STUDIO</strong> (อรัญ แสงเมือง) · © 2026 ARAN STUDIO, สงวนลิขสิทธิ์.
+      เผยแพร่ที่นี่เพื่อการศึกษา โดยอ้างอิงแหล่งที่มาเดิม
     </div>
   </section>
 
@@ -2074,6 +2350,7 @@ let playbackActiveMasters = [];
 
 function startPlayback() {
   if (state.isPlaying) return;
+  stopTutorialPlayback(true);   // never run both engines at once
   const ctx = ac();
   state.isPlaying = true;
   state.playStart = ctx.currentTime + 0.12; // small lead-in
@@ -2145,6 +2422,447 @@ function tickLoop() {
   }
   if (beat >= total) { stopPlayback(); return; }
   requestAnimationFrame(tickLoop);
+}
+
+// Score data — see SONGS below for the encoding.
+const SATHUKAN_LINES = [
+{h:0,r:"---7|---8|---8|-a-b|-b-b|-b--|bb--|aa-7",l:"---4|---5|---1|-3-4|-7-8|-7-4|---3|---4"},
+{h:8,r:"---5|-4--|77--|88-9|-b-c|-b--|99--|88-7",l:"---2|-1-0|---1|---2|-4-5|-4-2|---1|---0"},
+{h:16,r:"-9--|-7--|6---|---(78)|--bb|-c-b|-a-8|-a-b",l:"---8|-4--|-(54)-5|--6-|-4--|-5-4|-3-5|-3-4"},
+{h:24,r:"-e-f|-e--|cc--|bb-a|---(bc)|-e-f|-e-d|-c-b",l:"-7-8|-7-5|---4|---3|--a-|-7-8|-7-6|-5-4"},
+{h:32,r:"-8~--|87-8|-b--|a--b|-c-e|-c--|bb--|aa-8",l:"-7-5|-4-5|-4-3|-a-4|-5-7|-5-4|---3|---5"},
+{h:40,r:"--9-|-8--|-7-7|--cc|-a--|-(bc)-e|-f-e|-c-b",l:"---(87)|---0|---4|-5--|-7--|a--7|-8-7|-5-4"},
+{h:48,r:"-c-e|-c--|bb--|aa-8|----|---(78)|--88|-a-b",l:"-5-7|-5-4|---3|---5|-4-5|--6-|-1--|-3-4"},
+{h:56,r:"-cbb|--bb|-7-a|--bc|-e-f|-e--|cc--|bb-a",l:"---7|-4--|-4-3|---5|-7-8|-7-5|---4|---3"},
+{h:64,r:"--9-|-8--|-7-7|--aa|--bb|-c--|aa--|bb-c",l:"---(87)|---0|---4|-3--|-4--|-5-3|---4|---5"},
+{h:72,r:"-c--|bb--|cc--|ee-f|---(89)|-b--|-b--|9---",l:"-5-4|---5|---7|---8|--7-|---8|-7--|-(87)-5"},
+{h:80,r:"-e-f|-e--|cc--|bb-a|---(bc)|-e-f|-e-d|-c-b",l:"-7-8|-7-5|---4|---3|--a-|-7-8|-7-6|-5-4"},
+{h:88,r:"-8~--|87-8|-b--|a--b|-c-e|-c--|bb--|aa-8",l:"-7-5|-4-5|-4-3|-a-4|-5-7|-5-4|---3|---5"},
+{h:96,r:"-9-8|-7--|6---|---(78)|--bb|-c-b|-a-8|-a-b",l:"----|-4--|-(54)-5|--6-|-4--|-5-4|-3-5|-3-4"},
+{h:104,r:"-e-f|-e--|cc--|bb-a|---(bc)|-e-f|-e-d|-c-b",l:"-7-8|-7-5|---4|---3|--a-|-7-8|-7-6|-5-4"},
+{h:112,r:"-8~--|87-8|-b--|a--b|-c-e|-c--|bb--|aa-8",l:"-7-5|-4-5|-4-3|-a-4|-5-7|-5-4|---3|---5"},
+{h:120,r:"--bb|--bb|-b--|aa-b|--cc|-b--|99--|88-7",l:"-4--|-4--|-4-3|---4|-5--|-4-2|---1|---0"},
+{h:128,r:"--bb|-c-a|-b-c|-d-e|--ff|-e--|cc--|bb-a",l:"-4--|-5-3|-4-5|-6-7|-8--|-7-5|---4|---3"},
+{h:136,r:"-baa|--aa|-7-a|---(bc)|-e-f|-e--|cc--|bb-a",l:"---6|-3--|-4-3|---5|-7-8|-7-5|---4|---3"},
+{h:144,r:"---(89)|-b--|-b--|9--5|-55-|444-|55--|77-8",l:"--7-|---8|-7--|-(87)--|-2-1|---2|---0|---1"},
+{h:152,r:"--aa|-b-7|----|-(78)-a|a-bb|-c--|aa--|bb-c",l:"-3--|-4-4|-5--|6--3|-4--|-5-3|---4|---5"},
+{h:160,r:"---(bc)|-e-f|-f-f|-e-c|-e-f|-e--|cc--|bb-a",l:"--a-|-7-8|-a-8|-7-5|-7-8|-7-5|---4|---3"},
+{h:168,r:"-8--|77--|88--|aa-b|-a-b|-c-d|-fed|-c-b",l:"-5-4|---5|---3|---4|-3-4|-5-6|-876|-5-4"},
+{h:176,r:"---7|---(89)|-b-b|--9-|--6-|---7|----|-(78)-a",l:"-4--|--7-|---9|---(87)|---(54)|-5-4|-5--|6--3"},
+{h:184,r:"---(78)|-a-b|-c-b|-a-8|-8--|77--|88--|aa-b",l:"--6-|-3-4|-5-4|-3-5|-5-4|---5|---3|---4"},
+{h:192,r:"-c-b|-a-8|---(78)|-a-b|---7|--6-|---5|---(55)",l:"-5-4|-3-5|--6-|-3-4|---4|---(54)|---2|--5-"},
+{h:200,r:"-55-|44--|55--|77-8|---(89)|-b--|-b--|9---",l:"-2-1|---2|---0|---1|--7-|---8|-7--|-(87)-5"},
+{h:208,r:"--6-|--9-|---7|---(89)|-b-c|-b--|99--|88-7",l:"---(54)|---(87)|-4--|--7-|-4-5|-4-2|---1|---0"},
+{h:216,r:"--bb|-c-a|-b-c|-d-e|--6-|--9-|---7|---(89)",l:"-4--|-5-3|-4-5|-6-7|---(54)|---(87)|-4--|--7-"},
+{h:224,r:"---(89)|-b-c|-e-c|-b-9|-b-c|-bb-|99--|88-7",l:"--7-|-4-5|-7-5|-4-6|-4-5|-4-2|---1|---0"},
+{h:232,r:"-9--|-7--|6---|---(78)|--bb|-c-b|-a-8|-a-b",l:"---8|-4--|-(54)-5|--6-|-4--|-5-4|-3-5|-3-4"},
+{h:240,r:"-e-f|-e--|cc--|bb-a|---(bc)|-e-f|-e-d|-c-b",l:"-7-8|-7-5|---4|---3|--a-|-7-8|-7-6|-5-4"},
+{h:248,r:"-8~--|87-8|-b--|aa-b|-e-c|-b--|99--|88-7",l:"-7-5|-4-5|-4-3|---4|-7-5|-4-2|---1|---0"},
+{h:256,r:"---5|-4--|77--|88-9|-b-c|-b--|99--|88-7",l:"---2|-1-0|---1|---2|-4-5|-4-2|---1|---0"},
+{h:264,r:"-9--|-7--|6---|---(78)|--bb|-c-b|-a-8|-a-b",l:"---8|-4--|-(54)-5|--6-|-4--|-5-4|-3-5|-3-4"},
+{h:272,r:"-e-f|-e--|cc--|bb-a|---(bc)|-e-f|-e-d|-c-b",l:"-7-8|-7-5|---4|---3|--a-|-7-8|-7-6|-5-4"},
+{h:280,r:"-8~--|87-8|-b--|a--b|-c-e|-c--|bb--|aa-8",l:"-7-5|-4-5|-4-3|-a-4|-5-7|-5-4|---3|---5"},
+{h:288,r:"--9-|-8--|-7-7|--cc|-a--|-(bc)-e|-f-e|-c-b",l:"---(87)|---0|---4|-5--|-7--|a--7|-8-7|-5-4"},
+{h:296,r:"-c-e|-c--|bb--|aa-8|----|---(78)|--88|-a-b",l:"-5-7|-5-4|---3|---5|-4-5|--6-|-1--|-3-4"},
+{h:304,r:"-cbb|--bb|-7-a|---(bc)|-e-f|-e--|cc--|bb-a",l:"---7|-4--|-4-3|---5|-7-8|-7-5|---4|---3"},
+{h:312,r:"--9-|-8--|-7-7|--aa|--bb|-c--|aa--|bb-c",l:"---(87)|---0|---4|-3--|-4--|-5-3|---4|---5"},
+{h:320,r:"-c--|bb--|cc--|ee-f|---(89)|-b--|-b--|9---",l:"-5-4|---5|---7|---8|--7-|---8|-7--|-(87)-5"},
+{h:328,r:"-e-f|-e--|cc--|bb-a|---(bc)|-e-f|-e-d|-c-b",l:"-7-8|-7-5|---4|---3|--a-|-7-8|-7-6|-5-4"},
+{h:336,r:"-8~--|87-8|-bb-|a--b|-c-e|-c--|bb--|aa-8",l:"-7-5|-4-5|-4-3|-a-4|-5-7|-5-4|---3|---5"},
+{h:344,r:"-9-8|-7--|6---|---(78)|--bb|-c-b|-a-8|-a-b",l:"----|-4--|-(54)-5|--6-|-4--|-5-4|-3-5|-3-4"},
+{h:352,r:"-e-f|-e--|cc--|bb-a|---(bc)|-e-f|-e-d|-c-b",l:"-7-8|-7-5|---4|---3|--a-|-7-8|-7-6|-5-4"},
+{h:360,r:"-8~--|87-8|-bb-|a--b|-c-e|-c--|bb--|aa-8",l:"-7-5|-4-5|-4-3|-a-4|-5-7|-5-4|---3|---5"},
+{h:368,r:"--bb|--bb|-b--|aa-b|--cc|-b--|99--|88-7",l:"-4--|-4--|-4-3|---4|-5--|-4-2|---1|---0"},
+{h:376,r:"--bb|-c-a|-b-c|-d-e|--ff|-e--|cc--|bb-a",l:"-4--|-5-3|-4-5|-6-7|-8--|-7-5|---4|---3"},
+{h:384,r:"-baa|--aa|-7-a|---(bc)|-e-f|-e--|cc--|bb-a",l:"---6|-3--|-4-3|---5|-7-8|-7-5|---4|---3"},
+{h:392,r:"---(89)|-b--|-b--|9--5|-55-|44--|55--|77-8",l:"--7-|---8|-7--|-(87)--|-2-1|---2|---0|---1"},
+{h:400,r:"-c--|cc-e|-f-e|-c-b|-c-e|-c--|bb--|aa-8",l:"-5-5|---7|-8-7|-5-4|-5-7|-5-4|---3|---5"},
+{h:408,r:"-9-8|-7--|6---|---(78)|--bb|-c-b|-a-8|-a-b",l:"----|-4--|-(54)-5|--6-|-4--|-5-4|-3-5|-3-4"},
+{h:416,r:"-e-f|-e--|cc--|bb-a|---(bc)|-e-f|-e-d|-c-b",l:"-7-8|-7-5|---4|---3|--a-|-7-8|-7-6|-5-4"},
+{h:424,r:"-8~--|87-8|-b--|aa-b|-e-c|-b--|99--|88-7",l:"-7-5|-4-5|-4-3|---4|-7-5|-4-2|---1|---0"}
+];
+
+// =====================================================================
+// Tutorial — learn a full traditional score
+// =====================================================================
+// Repertoire is stored as compact strings: one per บรรทัด, per hand.
+// 8 ห้อง separated by '|', each ห้อง exactly 4 จังหวะ. Per จังหวะ:
+//     -        ไม่ตี (rest)
+//     0-9a-f   one gong — index into NOTE_BASE / FREQS
+//     (xy)     สะบัด — two gongs inside the one จังหวะ
+//     ~        (suffix) ตีเหลื่อม — struck off-sync with the other hand
+// Pitches are stored in THIS instrument's register, so the reader below
+// performs no transposition at runtime.
+const SCORE_ALPHABET = '0123456789abcdef';
+const SLOTS_PER_HONG = BEATS_PER_BAR;   // 4 จังหวะ ต่อ ห้อง
+const HONGS_PER_LINE = BARS_PER_VAK;    // 8 ห้อง ต่อ บรรทัด (1 วรรค)
+
+const SONGS = [
+  {
+    id: 'sathukan',
+    title: 'สาธุการ',
+    subtitle: 'ทางฆ้องวงใหญ่',
+    kind: 'เพลงหน้าพาทย์ · โหมโรง',
+    rate: 'อัตราสองชั้น',
+    sections: '1 ท่อน',
+    bpm: 65,                 // ห้อง ต่อ นาที — the source's own tempo
+    ching: 'ฉิ่งล้วน',
+    lines: SATHUKAN_LINES,
+  },
+];
+
+// Decode one hand's บรรทัด string → 8 ห้อง × 4 จังหวะ.
+// Each จังหวะ is null (ไม่ตี) or { n: [gongIdx, …], late: bool }.
+function parseScoreLine(str) {
+  return str.split('|').map(hongStr => {
+    const slots = [];
+    let i = 0;
+    while (i < hongStr.length) {
+      const c = hongStr[i];
+      if (c === '-') { slots.push(null); i += 1; }
+      else if (c === '(') {
+        slots.push({ n: [ SCORE_ALPHABET.indexOf(hongStr[i+1]),
+                          SCORE_ALPHABET.indexOf(hongStr[i+2]) ], late: false });
+        i += 4;                       // '(' x y ')'
+      } else {
+        slots.push({ n: [ SCORE_ALPHABET.indexOf(c) ], late: false });
+        i += 1;
+      }
+      if (hongStr[i] === '~') {       // ตีเหลื่อม marks the จังหวะ just read
+        if (slots[slots.length - 1]) slots[slots.length - 1].late = true;
+        i += 1;
+      }
+    }
+    return slots;
+  });
+}
+
+// Flatten a whole song into one lookup per hand, indexed by global จังหวะ.
+function compileSong(song) {
+  const right = [], left = [];
+  for (const line of song.lines) {
+    for (const hand of [['r', right], ['l', left]]) {
+      for (const hong of parseScoreLine(line[hand[0]])) {
+        for (const slot of hong) hand[1].push(slot);
+      }
+    }
+  }
+  return {
+    song,
+    right, left,
+    totalSlots: right.length,
+    totalHongs: right.length / SLOTS_PER_HONG,
+  };
+}
+
+const tutorial = {
+  compiled: null,
+  bpm: 65,              // ห้อง ต่อ นาที
+  playing: false,
+  startTime: 0,         // ctx time of จังหวะ 0 of this run
+  fromSlot: 0,          // จังหวะ the run began at
+  nextSlot: 0,          // next จังหวะ still to be scheduled
+  timer: null,
+  shownSlot: -1,
+  cells: { right: [], left: [] },   // global จังหวะ → element
+  hongEls: [],
+  lineEls: [],
+  activeMasters: [],
+};
+
+function tutSlotDur() { return 60 / tutorial.bpm / SLOTS_PER_HONG; }
+
+// ---------------------------------------------------------------- render
+function renderTutorialScore() {
+  const root = document.getElementById('tutScore');
+  root.innerHTML = '';
+  tutorial.cells.right.length = 0;
+  tutorial.cells.left.length  = 0;
+  tutorial.hongEls.length = 0;
+  tutorial.lineEls.length = 0;
+  if (!tutorial.compiled) return;
+
+  const { song } = tutorial.compiled;
+  const frag = document.createDocumentFragment();
+
+  song.lines.forEach((line, lineIdx) => {
+    const lineEl = document.createElement('div');
+    lineEl.className = 'tut-line';
+
+    // gutter — บรรทัด number + hand-off into the practice grid
+    const gutter = document.createElement('div');
+    gutter.className = 'tut-gutter';
+    const no = document.createElement('div');
+    no.className = 'tut-lineno';
+    no.innerHTML = `บรรทัด<b>${lineIdx + 1}</b>`;
+    const mini = document.createElement('button');
+    mini.className = 'tut-mini';
+    mini.type = 'button';
+    mini.textContent = 'ฝึกวรรคนี้';
+    mini.title = `ส่งบรรทัด ${lineIdx + 1} (8 ห้อง) ลงกริด Notation เพื่อซ้อมพิมพ์`;
+    mini.addEventListener('click', () => loadLineIntoGrid(lineIdx));
+    gutter.append(no, mini);
+
+    const hongs = document.createElement('div');
+    hongs.className = 'tut-hongs';
+
+    for (let h = 0; h < HONGS_PER_LINE; h++) {
+      const hongIdx  = lineIdx * HONGS_PER_LINE + h;
+      const slotBase = hongIdx * SLOTS_PER_HONG;
+
+      const hongEl = document.createElement('div');
+      hongEl.className = 'tut-hong';
+
+      const head = document.createElement('div');
+      head.className = 'tut-hong-head';
+      head.style.cursor = 'pointer';
+      head.title = `เล่นตั้งแต่ห้อง ${hongIdx + 1}`;
+      head.innerHTML = `<span class="no">${hongIdx + 1}</span>` +
+                       `<span class="ching">${song.ching === 'ฉิ่งล้วน' ? 'ฉิ่ง' : ''}</span>`;
+      head.addEventListener('click', () => startTutorialPlayback(slotBase));
+      hongEl.appendChild(head);
+
+      for (const hand of ['right', 'left']) {
+        const stave = document.createElement('div');
+        stave.className = 'tut-stave ' + hand;
+        for (let s = 0; s < SLOTS_PER_HONG; s++) {
+          const gslot = slotBase + s;
+          const slot  = tutorial.compiled[hand][gslot];
+          const cell  = document.createElement('div');
+          cell.className = 'tut-cell';
+          if (s === SLOTS_PER_HONG - 1) cell.classList.add('drop');   // จังหวะตก
+          if (slot) {
+            cell.innerHTML = slot.n.map(noteHTML).join('');
+            if (slot.n.length > 1) cell.classList.add('sabat');
+            if (slot.late) cell.classList.add('tut-late');
+            cell.title = slot.n.map(noteText).join(' ') +
+                         (slot.n.length > 1 ? ' · สะบัด' : '') +
+                         (slot.late ? ' · ตีเหลื่อม' : '');
+            cell.addEventListener('click', () => {
+              primeAudio();
+              // Single note auditions "live" so re-clicks choke the last
+              // voice; สะบัด needs explicit times to space the two strikes.
+              if (slot.n.length === 1) playGong(slot.n[0]);
+              else slot.n.forEach((g, k) => playGong(g, ac().currentTime + k * 0.085));
+              flashGong(slot.n[0]);
+            });
+          } else {
+            cell.textContent = '−';
+            cell.classList.add('rest');
+          }
+          tutorial.cells[hand][gslot] = cell;
+          stave.appendChild(cell);
+        }
+        hongEl.appendChild(stave);
+      }
+
+      tutorial.hongEls[hongIdx] = hongEl;
+      hongs.appendChild(hongEl);
+    }
+
+    lineEl.append(gutter, hongs);
+    tutorial.lineEls[lineIdx] = lineEl;
+    frag.appendChild(lineEl);
+  });
+
+  root.appendChild(frag);
+}
+
+function renderSongMeta() {
+  const el = document.getElementById('songMeta');
+  if (!tutorial.compiled) { el.innerHTML = ''; return; }
+  const { song, totalHongs } = tutorial.compiled;
+  const cells = [
+    ['เพลง',        song.title + ' · ' + song.subtitle, true],
+    ['ประเภท',      song.kind,      false],
+    ['อัตรา',       song.rate,      false],
+    ['ความยาว',     totalHongs + ' ห้อง · ' + song.sections, false],
+    ['ฉิ่ง',        song.ching,     false],
+    ['ตำแหน่ง',     '— / ' + totalHongs, false],
+  ];
+  el.innerHTML = cells.map(([k, v, lit]) =>
+    `<div class="m"><span class="k">${k}</span><span class="v${lit ? ' lit' : ''}">${v}</span></div>`
+  ).join('');
+  tutorial.posEl = el.querySelector('.m:last-child .v');
+}
+
+function setTutorialSong(id) {
+  const song = SONGS.find(s => s.id === id) || SONGS[0];
+  stopTutorialPlayback(true);
+  tutorial.compiled = compileSong(song);
+  tutorial.bpm = song.bpm;
+  const bpmInput = document.getElementById('tutBpm');
+  bpmInput.value = song.bpm;
+  renderSongMeta();
+  renderTutorialScore();
+}
+
+// ------------------------------------------------------------- playback
+// A lookahead scheduler, not one big upfront schedule: สาธุการ is 1,728
+// จังหวะ, and queueing every voice at once would stall the audio thread.
+const TUT_LOOKAHEAD_S = 0.25;
+const TUT_TICK_MS     = 40;
+
+function startTutorialPlayback(fromSlot = 0) {
+  if (!tutorial.compiled) return;
+  primeAudio();
+  stopTutorialPlayback(true);
+  if (state.isPlaying) stopPlayback(true);   // never run both engines at once
+
+  const ctx = ac();
+  tutorial.playing   = true;
+  tutorial.fromSlot  = Math.max(0, Math.min(fromSlot, tutorial.compiled.totalSlots - 1));
+  tutorial.nextSlot  = tutorial.fromSlot;
+  tutorial.startTime = ctx.currentTime + 0.12;   // lead-in
+  tutorial.shownSlot = -1;
+  tutorial.activeMasters = [];
+
+  document.getElementById('tutPlayBtn').textContent = 'Playing';
+  document.getElementById('tutPlayBtn').classList.remove('primary');
+
+  tutorial.timer = setInterval(tutorialScheduler, TUT_TICK_MS);
+  tutorialScheduler();
+  requestAnimationFrame(tutorialTick);
+}
+
+function tutorialScheduler() {
+  if (!tutorial.playing) return;
+  const ctx = ac();
+  const dur = tutSlotDur();
+  const { right, left, totalSlots } = tutorial.compiled;
+  const horizon = ctx.currentTime + TUT_LOOKAHEAD_S;
+
+  while (tutorial.nextSlot < totalSlots) {
+    const t = tutorial.startTime + (tutorial.nextSlot - tutorial.fromSlot) * dur;
+    if (t > horizon) break;
+    for (const arr of [right, left]) {
+      const slot = arr[tutorial.nextSlot];
+      if (!slot) continue;
+      // ตีเหลื่อม lands deliberately behind the other hand; สะบัด splits the
+      // จังหวะ into two quick strikes.
+      const skew = slot.late ? dur * 0.34 : 0;
+      slot.n.forEach((g, k) => {
+        const at = t + skew + k * (dur / slot.n.length);
+        const master = playGong(g, at, k === 0 ? 1 : 0.85);
+        if (master) tutorial.activeMasters.push(master);
+      });
+    }
+    tutorial.nextSlot++;
+  }
+
+  if (tutorial.nextSlot >= totalSlots) {
+    const endsAt = tutorial.startTime + (totalSlots - tutorial.fromSlot) * dur;
+    if (ctx.currentTime > endsAt + 0.3) stopTutorialPlayback(false);
+  }
+}
+
+function tutorialTick() {
+  if (!tutorial.playing) return;
+  const ctx = ac();
+  const dur = tutSlotDur();
+  // Highlight where the music is HEARD, not where it is being rendered.
+  const elapsed = ctx.currentTime - tutorial.startTime - audioLatencyMs() / 1000;
+  const slot = tutorial.fromSlot + Math.floor(elapsed / dur);
+  const total = tutorial.compiled.totalSlots;
+
+  if (slot !== tutorial.shownSlot && slot >= tutorial.fromSlot && slot < total) {
+    paintTutorialSlot(slot);
+    tutorial.shownSlot = slot;
+  }
+  if (slot >= total) { stopTutorialPlayback(false); return; }
+  requestAnimationFrame(tutorialTick);
+}
+
+// Only ever touches the cells that changed — repainting 3,456 of them per
+// จังหวะ would cost more frame time than the music leaves us.
+function paintTutorialSlot(slot) {
+  const prev = tutorial.shownSlot;
+  for (const hand of ['right', 'left']) {
+    if (prev >= 0) tutorial.cells[hand][prev]?.classList.remove('hit');
+    tutorial.cells[hand][slot]?.classList.add('hit');
+  }
+  const hong     = Math.floor(slot / SLOTS_PER_HONG);
+  const prevHong = prev >= 0 ? Math.floor(prev / SLOTS_PER_HONG) : -1;
+  if (hong !== prevHong) {
+    if (prevHong >= 0) tutorial.hongEls[prevHong]?.classList.remove('playing');
+    tutorial.hongEls[hong]?.classList.add('playing');
+
+    const line     = Math.floor(hong / HONGS_PER_LINE);
+    const prevLine = prevHong >= 0 ? Math.floor(prevHong / HONGS_PER_LINE) : -1;
+    if (line !== prevLine) {
+      if (prevLine >= 0) tutorial.lineEls[prevLine]?.classList.remove('playing');
+      const lineEl = tutorial.lineEls[line];
+      if (lineEl) {
+        lineEl.classList.add('playing');
+        // Scroll the score box only — never yank the whole page.
+        const box = document.getElementById('tutScore');
+        box.scrollTop = lineEl.offsetTop - box.clientHeight / 2 + lineEl.clientHeight / 2;
+      }
+    }
+    if (tutorial.posEl) {
+      tutorial.posEl.textContent = (hong + 1) + ' / ' + tutorial.compiled.totalHongs;
+    }
+  }
+}
+
+function stopTutorialPlayback(cutAudio = false) {
+  if (tutorial.timer) { clearInterval(tutorial.timer); tutorial.timer = null; }
+  const wasPlaying = tutorial.playing;
+  tutorial.playing = false;
+
+  if (cutAudio && audioCtx) {
+    const now = audioCtx.currentTime;
+    for (const master of tutorial.activeMasters) {
+      if (!master || !master.gain) continue;
+      try {
+        master.gain.cancelScheduledValues(now);
+        master.gain.setValueAtTime(master.gain.value, now);
+        master.gain.linearRampToValueAtTime(0, now + 0.04);
+      } catch (_) { /* node may already be disposed */ }
+    }
+  }
+  tutorial.activeMasters = [];
+
+  if (wasPlaying || tutorial.shownSlot >= 0) {
+    for (const hand of ['right', 'left']) {
+      tutorial.cells[hand][tutorial.shownSlot]?.classList.remove('hit');
+    }
+    tutorial.hongEls.forEach(el => el.classList.remove('playing'));
+    tutorial.lineEls.forEach(el => el.classList.remove('playing'));
+  }
+  tutorial.shownSlot = -1;
+
+  const btn = document.getElementById('tutPlayBtn');
+  if (btn) { btn.textContent = 'Play'; btn.classList.add('primary'); }
+  if (tutorial.posEl && tutorial.compiled) {
+    tutorial.posEl.textContent = '— / ' + tutorial.compiled.totalHongs;
+  }
+}
+
+// Send one บรรทัด (8 ห้อง = 1 วรรค = 32 จังหวะ) into the practice grid so it
+// can be typed back with the IME. สะบัด collapses to its first gong — the
+// grid holds a single gong per จังหวะ by design.
+function loadLineIntoGrid(lineIdx) {
+  if (!tutorial.compiled) return;
+  stopPlayback(true);
+  const base = lineIdx * HONGS_PER_LINE * SLOTS_PER_HONG;
+
+  state.numBars = HONGS_PER_LINE;
+  ensureCapacity();
+  for (const hand of ['right', 'left']) {
+    for (let i = 0; i < HONGS_PER_LINE * SLOTS_PER_HONG; i++) {
+      const slot = tutorial.compiled[hand][base + i];
+      state.notes[hand][i] = slot ? slot.n[0] : null;
+    }
+  }
+  state.cursorBeat = 0;
+  state.currentBeat = -1;
+  document.getElementById('numVak').value = 1;
+
+  updateCounts();
+  updateCursorStatus();
+  renderNotation();
+  document.getElementById('notation').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 // =====================================================================
@@ -2282,6 +3000,36 @@ function init() {
   document.getElementById('exportBtn').addEventListener('click', exportNotation);
   document.getElementById('exportCsvBtn').addEventListener('click', exportNotationCSV);
   document.getElementById('importBtn').addEventListener('click', triggerImport);
+
+  // Tutorial — song picker, transport, tempo
+  const songSelect = document.getElementById('songSelect');
+  songSelect.innerHTML = SONGS.map(s =>
+    `<option value="${s.id}">${s.title} · ${s.subtitle}</option>`).join('');
+  songSelect.addEventListener('change', () => setTutorialSong(songSelect.value));
+  setTutorialSong(SONGS[0].id);
+
+  document.getElementById('tutPlayBtn').addEventListener('click', () => {
+    tutorial.playing ? stopTutorialPlayback(true) : startTutorialPlayback(0);
+  });
+  document.getElementById('tutStopBtn').addEventListener('click', () => stopTutorialPlayback(true));
+  document.getElementById('tutTopBtn').addEventListener('click', () => {
+    document.getElementById('tutScore').scrollTop = 0;
+  });
+
+  const tutBpmInput = document.getElementById('tutBpm');
+  tutBpmInput.addEventListener('change', () => {
+    const v = Math.max(30, Math.min(300, +tutBpmInput.value || 65));
+    tutBpmInput.value = v;
+    if (tutorial.playing) {
+      // Re-anchor the run at the current จังหวะ so the new tempo takes effect
+      // from here instead of warping everything already scheduled.
+      const at = Math.max(tutorial.fromSlot, tutorial.shownSlot);
+      tutorial.bpm = v;
+      startTutorialPlayback(at);
+    } else {
+      tutorial.bpm = v;
+    }
+  });
 
   // Keyboard — Thai music IME (split-hand). All detection via e.code so the
   // OS keyboard layout (Thai Kedmanee, US QWERTY, …) doesn't matter.
