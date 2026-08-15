@@ -549,17 +549,27 @@ section.panel h3 {
   box-shadow: 0 0 8px currentColor;
 }
 
-/* Tutorial transport — one row directly above the ring, always present so a
-   run can be driven without leaving the instrument */
+/* Tutorial transport — seated in the empty middle of the horseshoe, where
+   the player is already looking. Positioned against .stage-wrap so it never
+   becomes a descendant of .gong-stage, where a pointerdown strikes a gong. */
+.stage-wrap { position: relative; }
 .play-bar {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  margin-bottom: 14px;
-  padding: 9px 12px;
-  background: linear-gradient(180deg, var(--panel-2), #040806);
-  border: 1px solid var(--border);
-  border-left: 2px solid var(--accent);
-  border-radius: 3px;
+  position: absolute;
+  left: 50%; top: 47%;
+  transform: translate(-50%, -50%);
+  z-index: 5;                    /* gongs sit at 3 */
+  width: 252px;
+  padding: 11px 13px 12px;
+  display: flex; flex-direction: column; gap: 8px;
+  background: rgba(5, 7, 6, 0.90);
+  border: 1px solid var(--border-lit);
+  border-top: 2px solid var(--accent);
+  border-radius: 4px;
+  backdrop-filter: blur(9px) saturate(130%);
+  -webkit-backdrop-filter: blur(9px) saturate(130%);
+  box-shadow: 0 18px 44px rgba(0,0,0,0.6), 0 0 22px rgba(0,217,95,0.10);
 }
+.pb-head { display: flex; align-items: baseline; gap: 8px; }
 .pb-tag {
   font-family: var(--font-mono); font-size: 8.5px; font-weight: 600;
   text-transform: uppercase; letter-spacing: 2px; color: var(--accent);
@@ -570,13 +580,17 @@ section.panel h3 {
 }
 .pb-pos {
   font-family: var(--font-mono); font-size: 12.5px; color: var(--muted);
-  letter-spacing: 0.3px;
-  padding-left: 10px; border-left: 1px solid var(--border);
+  letter-spacing: 0.3px; white-space: nowrap;
 }
 .pb-pos b { color: var(--accent); font-weight: 600; }
 .pb-total { color: var(--dim); }
-.pb-spacer { flex: 1 1 auto; }
-/* The current วรรค under the transport — same cells as the score reader, at
+.pb-btns { display: grid; grid-template-columns: 1fr 1.15fr 1fr; gap: 5px; }
+.pb-aux { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.pb-aux .pill-group .btn { padding: 5px 9px; font-size: 11px; }
+.play-bar .btn { padding: 6px 8px; font-size: 11.5px; text-align: center; }
+.play-bar .tempo-input { padding: 5px 8px; width: 56px; font-size: 12px; }
+
+/* The current วรรค above the ring — same cells as the score reader, at
    reading size for someone sitting at the instrument. */
 .vak-wrap {
   overflow-x: auto; overscroll-behavior-x: contain;
@@ -595,15 +609,16 @@ section.panel h3 {
 .vak-strip .tut-cell:hover { background: none; }
 .vak-strip .tut-cell.drop:hover { background: rgba(255,255,255,0.022); }
 
-/* the three transport buttons stay one unit, never split across a wrap */
-.pb-btns { display: flex; gap: 6px; }
-.play-bar .btn { padding: 7px 12px; font-size: 12px; }
-@media (max-width: 640px) {
-  .play-bar { gap: 8px 10px; }
-  .pb-pos { padding-left: 0; border-left: none; }
-  .pb-spacer { flex-basis: 100%; }
-  .pb-btns { flex: 1 1 100%; }
-  .pb-btns .btn { flex: 1 1 0; }   /* thumb-sized targets across the row */
+/* Below ~860px the ring's middle can no longer hold the card, so it drops
+   back into the flow underneath the instrument. */
+@media (max-width: 860px) {
+  .play-bar {
+    position: static; transform: none;
+    width: auto; margin-top: 14px;
+    backdrop-filter: none; -webkit-backdrop-filter: none;
+    background: linear-gradient(180deg, var(--panel-2), #040806);
+  }
+  .play-bar .btn { padding: 8px; font-size: 12px; }
 }
 
 /* =====================================================================
@@ -1047,33 +1062,43 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
   <section class="panel">
     <h2>Instrument</h2>
     <h3>ฆ้องวงใหญ่ · 16 gongs · เสียงไทยกรมศิลป์ (เสียง 7 เสียง, equidistant, no semitones)</h3>
-    <!-- Tutorial transport, kept beside the instrument so a phrase can be
-         played, paused and re-taken without scrolling down to the score. -->
-    <div class="play-bar">
-      <span class="pb-tag">Tutorial</span>
-      <span class="pb-song" id="pbSong">—</span>
-      <span class="pb-pos" id="pbPos">—</span>
-      <span class="pb-spacer"></span>
-      <span class="control-label">Tempo</span>
-      <input type="number" id="pbBpm" class="tempo-input" min="30" max="300" value="65">
-      <span class="control-label">bpm</span>
-      <div class="pill-group" id="pbSoundGroup">
-        <button class="btn active" type="button" data-sound="on">มีเสียง</button>
-        <button class="btn" type="button" data-sound="off"
-                title="ปิดเสียงฆ้อง เหลือไฟบอกตำแหน่งกับฉิ่งไว้ตีเอง">เงียบ</button>
-      </div>
-      <span class="pb-btns">
-        <button class="btn" id="pbPrev" type="button" title="ถอย 1 วรรค">−วรรค</button>
-        <button class="btn primary" id="pbPlay" type="button">Play</button>
-        <button class="btn" id="pbNext" type="button" title="เดินหน้า 1 วรรค">+วรรค</button>
-      </span>
-    </div>
-
     <!-- The วรรค being played, so the phrase is readable from the instrument -->
     <div class="vak-wrap"><div class="vak-strip" id="vakStrip"></div></div>
 
-    <div class="gong-stage" id="gong-stage">
-      <div class="player-mark">ผู้บรรเลง<br><span style="font-size:9px;letter-spacing:0.5px;text-transform:uppercase;">player</span></div>
+    <div class="stage-wrap">
+      <div class="gong-stage" id="gong-stage">
+        <div class="player-mark">ผู้บรรเลง<br><span style="font-size:9px;letter-spacing:0.5px;text-transform:uppercase;">player</span></div>
+      </div>
+
+      <!-- Transport, seated in the ring's empty middle. A SIBLING of the
+           stage, never a child: a pointerdown anywhere inside .gong-stage
+           strikes a gong. -->
+      <div class="play-bar">
+        <div class="pb-head">
+          <span class="pb-tag">Tutorial</span>
+          <span class="pb-song" id="pbSong">—</span>
+        </div>
+        <div class="pb-pos" id="pbPos">—</div>
+        <div class="pb-btns">
+          <button class="btn" id="pbPrev" type="button" title="ถอย 1 วรรค">−วรรค</button>
+          <button class="btn primary" id="pbPlay" type="button">Play</button>
+          <button class="btn" id="pbNext" type="button" title="เดินหน้า 1 วรรค">+วรรค</button>
+        </div>
+        <div class="pb-aux">
+          <span class="control-label">Tempo</span>
+          <input type="number" id="pbBpm" class="tempo-input" min="30" max="300" value="65">
+          <span class="control-label">bpm</span>
+        </div>
+        <div class="pb-aux">
+          <div class="pill-group" id="pbSoundGroup">
+            <button class="btn active" type="button" data-sound="on">มีเสียง</button>
+            <button class="btn" type="button" data-sound="off"
+                    title="ปิดเสียงฆ้อง เหลือไฟบอกตำแหน่งกับฉิ่งไว้ตีเอง">เงียบ</button>
+          </div>
+          <button class="btn" id="pbNotes" type="button"
+                  title="ซ่อน/แสดง โน้ตวรรคนี้เหนือเครื่องดนตรี">ซ่อนโน้ต</button>
+        </div>
+      </div>
     </div>
 
     <p class="help-note">คลิก/แตะ = ตีปกติ (บันทึกลงกริดเมื่อ Record เปิด) · <strong>กดค้างแล้วลากผ่านลูกฆ้อง = กวาด</strong> — เริ่มจากตำแหน่งไหน ทิศทางไหนก็ได้ ใช้หลายนิ้วพร้อมกันได้ ลากเร็วเสียงจะเบาลงเหมือนไม้ลูบผ่านจริง (เสียงกวาดไม่ถูกบันทึกลงกริด)</p>
@@ -2743,6 +2768,7 @@ const tutorial = {
   fromSlot: 0,          // จังหวะ the run began at
   resumeSlot: 0,        // จังหวะ the next Play will pick up from
   muted: false,         // silent practice — lights and ฉิ่ง, no gong notes
+  vakHidden: false,     // strip folded away — the ring alone leads the run
   vakLine: -1,          // บรรทัด currently built into the strip
   vakCells: { right: {}, left: {} },   // global จังหวะ → strip element
   vakLit: -1,
@@ -3108,14 +3134,14 @@ function setResumeSlot(slot) {
   renderPlayBar();
 }
 
-// Pausing steps back a whole วรรค: the point of stopping mid-run is almost
-// always to take the phrase again, and a รัน-up beats resuming from the exact
-// จังหวะ where the mistake happened.
+// Pausing drops back to the first ห้อง of the วรรค being played: stopping
+// mid-run almost always means taking that phrase again from its head, and
+// resuming at the exact จังหวะ of the mistake gives nothing to lead in with.
 function pauseTutorial() {
   const at = tutorial.playing && tutorial.shownSlot >= 0
     ? tutorial.shownSlot : tutorial.fromSlot;
   stopTutorialPlayback(true);
-  setResumeSlot(vakStartOf(at) - SLOTS_PER_VAK);
+  setResumeSlot(vakStartOf(at));
 }
 
 function nudgeTutorialVak(delta) {
@@ -3144,7 +3170,7 @@ function renderPlayBar() {
 // during a run only the cursor class moves, so playback never pays for 64
 // cells of DOM work on every จังหวะ.
 function renderVakStrip() {
-  if (!tutorial.compiled) return;
+  if (!tutorial.compiled || tutorial.vakHidden) return;   // folded away: no DOM work
   const slot = tutorialCursorSlot();
   const line = Math.floor(slot / SLOTS_PER_VAK);
   if (line !== tutorial.vakLine) buildVakStrip(line);
@@ -3409,6 +3435,14 @@ function init() {
   // resumes from wherever that left the cursor.
   document.getElementById('pbPlay').addEventListener('click', () => {
     tutorial.playing ? pauseTutorial() : startTutorialPlayback(tutorial.resumeSlot);
+  });
+  document.getElementById('pbNotes').addEventListener('click', (e) => {
+    tutorial.vakHidden = !tutorial.vakHidden;
+    document.querySelector('.vak-wrap').hidden = tutorial.vakHidden;
+    e.currentTarget.textContent = tutorial.vakHidden ? 'แสดงโน้ต' : 'ซ่อนโน้ต';
+    // it went stale while hidden — rebuild against wherever the run is now
+    tutorial.vakLine = -1;
+    renderVakStrip();
   });
   document.querySelectorAll('#pbSoundGroup .btn').forEach(btn => {
     btn.addEventListener('click', () => {
