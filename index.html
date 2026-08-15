@@ -2571,37 +2571,34 @@ function compileSong(song) {
   }
   const hands = { right, left };
   const total = right.length;
-  const other = h => (h === 'right' ? 'left' : 'right');
 
-  // A สะบัด is one flourish, so its notes divide the span it occupies
-  // EVENLY — that even spacing is what makes it sound smooth. A 3-note
-  // สะบัด written across two ช่อง spans 2 จังหวะ, so the notes step by 2/3,
-  // NOT 1 then 1/2 (which is where they land if each cell is read on its
-  // own, and it audibly limps). Two gongs written inside a single ช่อง
-  // span 1 จังหวะ and step by 1/2. Both are just span / noteCount.
-  const figure = new Map();     // "hand+slot" of the opening note → all its notes
-  const consumed = new Set();   // continuation cells, already spoken for
-  for (const hand of ['right', 'left']) {
-    hands[hand].forEach((slot, i) => {
-      if (!slot || !slot.start) return;
-      const cont = hands[other(hand)][i + 1];
-      if (!cont) return;
-      figure.set(hand + i, [...slot.n, ...cont.n]);
-      consumed.add(other(hand) + (i + 1));
-    });
-  }
+  // A สะบัด ANTICIPATES its จังหวะ rather than starting on it: the notes
+  // written in the cell step by half a จังหวะ and the LAST one lands on the
+  // beat, so a pair sounds at −1/2 and 0. When a tied note sits one จังหวะ
+  // earlier in the other hand the three come out evenly spaced by 1/2 —
+  // ซ, ล, ท at จังหวะ 2.0, 2.5, 3.0 — which is the whole flourish leaning
+  // into the beat instead of tumbling off it.
+  //
+  // These three rules (plain note on its จังหวะ, สะบัด anticipating, ตีเหลื่อม
+  // trailing by an eighth) reproduce every one of the 1,467 strike times in
+  // the source's own event list exactly — checked, 0 unexplained.
+  // Timing is therefore purely local to a cell; `start` only marks the tie
+  // for the reader.
+  const SABAT_STEP = 0.5;     // จังหวะ between สะบัด notes, landing on the beat
+  const LATE_SKEW  = 0.125;   // ตีเหลื่อม trails the other hand by 1/8 จังหวะ
 
   const fire = Array.from({ length: total }, () => []);
   for (const hand of ['right', 'left']) {
     hands[hand].forEach((slot, i) => {
-      if (!slot || consumed.has(hand + i)) return;
-      const notes = figure.get(hand + i) || slot.n;
-      const span  = figure.has(hand + i) ? 2 : 1;
-      const step  = span / notes.length;
-      // ตีเหลื่อม lands deliberately behind the other hand.
-      const skew  = slot.late ? 0.34 : 0;
-      notes.forEach((g, k) => {
-        fire[i].push({ g, off: skew + k * step, v: k === 0 ? 1 : 0.85 });
+      if (!slot) return;
+      const n = slot.n.length;
+      const skew = slot.late ? LATE_SKEW : 0;
+      slot.n.forEach((g, k) => {
+        fire[i].push({
+          g,
+          off: skew - (n - 1 - k) * SABAT_STEP,   // last note sits on the beat
+          v: k === n - 1 ? 1 : 0.85,              // the grace notes are lighter
+        });
       });
     });
   }
@@ -2627,7 +2624,10 @@ const tutorial = {
   hongEls: [],
   lineEls: [],
   activeMasters: [],
-  chingTimers: [],      // indicator flashes queued for ฉิ่ง already scheduled
+  // Gong lights and ฉิ่ง indicator flashes already queued for notes that
+  // are scheduled but not yet heard. Cleared on stop so a halted run does
+  // not keep blinking.
+  visualTimers: [],
 };
 
 function tutSlotDur() { return 60 / tutorial.bpm / SLOTS_PER_HONG; }
@@ -2806,15 +2806,24 @@ function tutorialScheduler() {
         tutorial.nextSlot % SLOTS_PER_HONG === song.chingSlot) {
       playChingStroke(t, false);
       const ms = (t - ctx.currentTime) * 1000 + audioLatencyMs() - 5;
-      tutorial.chingTimers.push(setTimeout(() => flashChingIndicator(false),
-                                           Math.max(0, ms)));
+      tutorial.visualTimers.push(setTimeout(() => flashChingIndicator(false),
+                                            Math.max(0, ms)));
     }
 
     // Strike times were resolved in compileSong — สะบัด figures already
     // carry their even spacing here, so this just plays what it is given.
     for (const ev of fire[tutorial.nextSlot]) {
-      const master = playGong(ev.g, t + ev.off * dur, ev.v);
+      // A สะบัด's grace note sits BEFORE its จังหวะ, so starting playback
+      // right on one would ask for a time already past — clamp to now.
+      const at = Math.max(t + ev.off * dur, ctx.currentTime);
+      const master = playGong(ev.g, at, ev.v);
       if (master) tutorial.activeMasters.push(master);
+      // Light the gong on the instrument as the note is HEARD (not when the
+      // audio thread starts rendering it), so the player can follow which
+      // one to strike — the สะบัด flourish lights up as three separate hits.
+      const ms = (at - ctx.currentTime) * 1000 + audioLatencyMs() - 5;
+      tutorial.visualTimers.push(setTimeout(() => flashGong(ev.g),
+                                            Math.max(0, ms)));
     }
     tutorial.nextSlot++;
   }
@@ -2879,13 +2888,17 @@ function stopTutorialPlayback(cutAudio = false) {
   const wasPlaying = tutorial.playing;
   tutorial.playing = false;
 
-  tutorial.chingTimers.forEach(clearTimeout);
-  tutorial.chingTimers = [];
+  tutorial.visualTimers.forEach(clearTimeout);
+  tutorial.visualTimers = [];
   if (wasPlaying) {
     // flashChingIndicator queues its glow-off into ching.visualTimers; over a
     // 432-ห้อง run those would pile up unread if the metronome never runs.
     ching.visualTimers.forEach(clearTimeout);
     ching.visualTimers = [];
+    // A gong lit microseconds before Stop would otherwise stay lit for the
+    // rest of its 400 ms animation.
+    document.querySelectorAll('.gong.playing')
+            .forEach(el => el.classList.remove('playing'));
     const el = document.getElementById('chingIndicator');
     el.textContent = '·';
     el.classList.remove('hit-ching', 'hit-chap');
