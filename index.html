@@ -539,94 +539,42 @@ section.panel h3 {
   box-shadow: 0 0 8px currentColor;
 }
 
-/* Tutorial HUD — floats over the ring so a run can be driven from the
-   instrument, without scrolling down to the score to reach the transport */
-.tut-hud {
-  position: fixed;               /* left/top tracked to the ring by JS */
-  transform: translate(-50%, -50%);
-  z-index: 30;                   /* over the sticky header, which sits at 20 */
-  width: 234px;
-  padding: 11px 13px 10px;
-  background: rgba(5, 7, 6, 0.93);
-  border: 1px solid var(--border-lit);
-  border-top: 2px solid var(--accent);
-  border-radius: 4px;
-  backdrop-filter: blur(9px) saturate(130%);
-  -webkit-backdrop-filter: blur(9px) saturate(130%);
-  box-shadow: 0 18px 44px rgba(0,0,0,0.62), 0 0 22px rgba(0,217,95,0.10);
-  animation: hud-in 0.28s cubic-bezier(0.2,0.7,0.2,1) both;
+/* Tutorial transport — one row directly above the ring, always present so a
+   run can be driven without leaving the instrument */
+.play-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 14px;
+  padding: 9px 12px;
+  background: linear-gradient(180deg, var(--panel-2), #040806);
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--accent);
+  border-radius: 3px;
 }
-@keyframes hud-in {
-  from { opacity: 0; transform: translate(-50%, -44%) scale(0.97); }
-  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-}
-.tut-hud[hidden] { display: none; }
-.hud-top {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 8px; margin-bottom: 7px;
-}
-.hud-tag {
+.pb-tag {
   font-family: var(--font-mono); font-size: 8.5px; font-weight: 600;
   text-transform: uppercase; letter-spacing: 2px; color: var(--accent);
 }
-.hud-x {
-  background: none; border: none; padding: 0; cursor: pointer;
-  font-family: var(--font-mono); font-size: 9px; letter-spacing: 1.2px;
-  text-transform: uppercase; color: var(--dim);
-  transition: color 0.15s;
+.pb-song {
+  font-family: var(--font-display); font-size: 15px; color: var(--text);
+  letter-spacing: 0.2px;
 }
-.hud-x:hover { color: var(--text); }
-.hud-acts { display: inline-flex; gap: 10px; }
-
-/* Minimised — keeps only where you are and the one control that matters,
-   so it can sit over the ring without covering it. */
-.tut-hud.min { width: 166px; padding: 9px 11px; }
-.tut-hud.min .hud-strip,
-.tut-hud.min .hud-hint,
-.tut-hud.min #hudPrev,
-.tut-hud.min #hudNext { display: none; }
-.tut-hud.min .hud-controls { grid-template-columns: 1fr; }
-.tut-hud.min .hud-pos { font-size: 11.5px; margin-bottom: 7px; white-space: nowrap; }
-/* the total would wrap to a second line at the collapsed width */
-.hud-total { color: var(--dim); }
-.tut-hud.min .hud-total { display: none; }
-.hud-pos {
-  font-family: var(--font-mono); font-size: 13px; color: var(--text);
-  letter-spacing: 0.3px; margin-bottom: 8px;
+.pb-pos {
+  font-family: var(--font-mono); font-size: 12.5px; color: var(--muted);
+  letter-spacing: 0.3px;
+  padding-left: 10px; border-left: 1px solid var(--border);
 }
-.hud-pos b { color: var(--accent); font-weight: 600; }
-/* the ห้อง under the cursor, so the next strike is readable from here */
-.hud-strip {
-  border: 1px solid var(--border); border-radius: 2px;
-  background: #040806; overflow: hidden; margin-bottom: 9px;
-}
-.hud-row { display: grid; grid-template-columns: repeat(4, 1fr); }
-.hud-row + .hud-row { border-top: 1px solid rgba(31,42,34,0.75); }
-.hud-cell {
-  text-align: center; padding: 4px 0;
-  font-family: var(--font-mono); font-size: 13px; line-height: 1.2;
-  color: var(--dim);
-}
-.hud-cell.on { background: rgba(198,255,90,0.16); }
-.hud-cell .nn-low  { color: #2b8f5d; }
-.hud-cell .nn-mid  { color: #14b45a; }
-.hud-cell .nn-high { color: #a8dc55; }
-.hud-controls { display: grid; grid-template-columns: 1fr 1.25fr 1fr; gap: 5px; }
-.hud-controls .btn { padding: 7px 4px; font-size: 11px; text-align: center; }
-.hud-hint {
-  margin-top: 7px;
-  font-family: var(--font-mono); font-size: 8.5px; letter-spacing: 0.4px;
-  color: var(--dim); text-align: center;
-}
-/* On a phone the horseshoe's middle is far too small to hold the HUD, so it
-   parks at the bottom of the viewport instead (JS leaves left/top alone). */
-@media (max-width: 720px) {
-  .tut-hud {
-    left: 50% !important; top: auto !important; bottom: 12px;
-    transform: translateX(-50%);
-    width: min(300px, calc(100vw - 24px));
-    animation: none;
-  }
+.pb-pos b { color: var(--accent); font-weight: 600; }
+.pb-total { color: var(--dim); }
+.pb-spacer { flex: 1 1 auto; }
+/* the three transport buttons stay one unit, never split across a wrap */
+.pb-btns { display: flex; gap: 6px; }
+.play-bar .btn { padding: 7px 12px; font-size: 12px; }
+@media (max-width: 640px) {
+  .play-bar { gap: 8px 10px; }
+  .pb-pos { padding-left: 0; border-left: none; }
+  .pb-spacer { flex-basis: 100%; }
+  .pb-btns { flex: 1 1 100%; }
+  .pb-btns .btn { flex: 1 1 0; }   /* thumb-sized targets across the row */
 }
 
 /* =====================================================================
@@ -1070,6 +1018,23 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
   <section class="panel">
     <h2>Instrument</h2>
     <h3>ฆ้องวงใหญ่ · 16 gongs · เสียงไทยกรมศิลป์ (เสียง 7 เสียง, equidistant, no semitones)</h3>
+    <!-- Tutorial transport, kept beside the instrument so a phrase can be
+         played, paused and re-taken without scrolling down to the score. -->
+    <div class="play-bar">
+      <span class="pb-tag">Tutorial</span>
+      <span class="pb-song" id="pbSong">—</span>
+      <span class="pb-pos" id="pbPos">—</span>
+      <span class="pb-spacer"></span>
+      <span class="control-label">Tempo</span>
+      <input type="number" id="pbBpm" class="tempo-input" min="30" max="300" value="65">
+      <span class="control-label">bpm</span>
+      <span class="pb-btns">
+        <button class="btn" id="pbPrev" type="button" title="ถอย 1 วรรค">−วรรค</button>
+        <button class="btn primary" id="pbPlay" type="button">Play</button>
+        <button class="btn" id="pbNext" type="button" title="เดินหน้า 1 วรรค">+วรรค</button>
+      </span>
+    </div>
+
     <div class="gong-stage" id="gong-stage">
       <div class="player-mark">ผู้บรรเลง<br><span style="font-size:9px;letter-spacing:0.5px;text-transform:uppercase;">player</span></div>
     </div>
@@ -1242,28 +1207,6 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
   © 2026 <a href="https://nuttakitkundum.com">nuttakitkundum.com</a> · ฆ้องวงใหญ่ — Khong Wong Yai
 </footer>
 
-<!-- Transport for a tutorial run, floated over the ring so a phrase can be
-     driven from the instrument. A direct child of <body> on purpose: every
-     panel animates with a transform, which would make position:fixed resolve
-     against the panel instead of the viewport and strand it off-screen. Also
-     keeps it clear of .gong-stage, where any pointerdown strikes a gong. -->
-<div class="tut-hud" id="tutHud" hidden>
-  <div class="hud-top">
-    <span class="hud-tag" id="hudTitle">Tutorial</span>
-    <span class="hud-acts">
-      <button class="hud-x" id="hudMin" type="button">ย่อ</button>
-      <button class="hud-x" id="hudClose" type="button">ปิด</button>
-    </span>
-  </div>
-  <div class="hud-pos" id="hudPos">—</div>
-  <div class="hud-strip" id="hudStrip"></div>
-  <div class="hud-controls">
-    <button class="btn" id="hudPrev" type="button" title="ถอย 1 วรรค">−วรรค</button>
-    <button class="btn primary" id="hudPlay" type="button">Play</button>
-    <button class="btn" id="hudNext" type="button" title="เดินหน้า 1 วรรค">+วรรค</button>
-  </div>
-  <div class="hud-hint" id="hudHint">พัก = ถอย 1 วรรค เพื่อซ้อมซ้ำ</div>
-</div>
 
 <script>
 // =====================================================================
@@ -2738,8 +2681,6 @@ const tutorial = {
   startTime: 0,         // ctx time of จังหวะ 0 of this run
   fromSlot: 0,          // จังหวะ the run began at
   resumeSlot: 0,        // จังหวะ the next Play will pick up from
-  hudOpen: false,
-  hudMin: false,        // collapsed to position + Pause/Play only
   nextSlot: 0,          // next จังหวะ still to be scheduled
   timer: null,
   shownSlot: -1,
@@ -2872,14 +2813,14 @@ function renderSongMeta() {
 function setTutorialSong(id) {
   const song = SONGS.find(s => s.id === id) || SONGS[0];
   stopTutorialPlayback(true);
-  hideTutorialHud();          // its resume mark points at the old score's rows
   tutorial.resumeSlot = 0;
   tutorial.compiled = compileSong(song);
   tutorial.bpm = song.bpm;
-  const bpmInput = document.getElementById('tutBpm');
-  bpmInput.value = song.bpm;
+  document.getElementById('tutBpm').value = song.bpm;
+  document.getElementById('pbBpm').value  = song.bpm;
   renderSongMeta();
   renderTutorialScore();
+  renderPlayBar();      // the row is always on screen, so fill it right away
 }
 
 // ------------------------------------------------------------- playback
@@ -2910,7 +2851,7 @@ function startTutorialPlayback(fromSlot = 0) {
 
   tutorial.resumeSlot = tutorial.fromSlot;
   tutorial.lineEls.forEach(el => el.classList.remove('resume'));
-  showTutorialHud();
+  renderPlayBar();
 
   tutorial.timer = setInterval(tutorialScheduler, TUT_TICK_MS);
   tutorialScheduler();
@@ -3009,7 +2950,7 @@ function paintTutorialSlot(slot) {
     if (tutorial.posEl) {
       tutorial.posEl.textContent = (hong + 1) + ' / ' + tutorial.compiled.totalHongs;
     }
-    renderTutorialHud();
+    renderPlayBar();
   }
 }
 
@@ -3061,10 +3002,10 @@ function stopTutorialPlayback(cutAudio = false) {
   if (tutorial.posEl && tutorial.compiled) {
     tutorial.posEl.textContent = '— / ' + tutorial.compiled.totalHongs;
   }
-  renderTutorialHud();
+  renderPlayBar();
 }
 
-// ------------------------------------------------------------------ HUD
+// ------------------------------------------------------- transport row
 // A run can be driven from beside the instrument, so a phrase can be
 // practised while watching the gongs light up rather than the score.
 function vakStartOf(slot) {
@@ -3087,7 +3028,7 @@ function setResumeSlot(slot) {
     const line = Math.floor(tutorial.resumeSlot / SLOTS_PER_VAK);
     tutorial.lineEls[line]?.classList.add('resume');
   }
-  renderTutorialHud();
+  renderPlayBar();
 }
 
 // Pausing steps back a whole วรรค: the point of stopping mid-run is almost
@@ -3106,75 +3047,36 @@ function nudgeTutorialVak(delta) {
   else                  setResumeSlot(target);
 }
 
-// Track the middle of the ring, but never let the HUD ride up under the
-// sticky header or off the bottom — scrolling past the instrument parks it
-// just below the header, still in reach, instead of losing it off-screen.
-function positionTutorialHud() {
-  if (!tutorial.hudOpen) return;
-  const hud = document.getElementById('tutHud');
-  if (window.matchMedia('(max-width: 720px)').matches) return;   // CSS parks it
-  const stage = document.getElementById('gong-stage');
-  if (!stage) return;
-  const r = stage.getBoundingClientRect();
-  const half = hud.offsetHeight / 2;
-  const y = Math.min(Math.max(r.top + r.height * 0.54, half + 74),
-                     window.innerHeight - half - 12);
-  hud.style.left = (r.left + r.width / 2) + 'px';
-  hud.style.top  = y + 'px';
-}
-
-function showTutorialHud() {
-  tutorial.hudOpen = true;
-  document.getElementById('tutHud').hidden = false;
-  renderTutorialHud();
-  positionTutorialHud();
-}
-
-function hideTutorialHud() {
-  tutorial.hudOpen = false;
-  document.getElementById('tutHud').hidden = true;
-  tutorial.lineEls.forEach(el => el.classList.remove('resume'));
-}
-
-function setTutorialHudMin(min) {
-  tutorial.hudMin = min;
-  const hud = document.getElementById('tutHud');
-  hud.classList.toggle('min', min);
-  document.getElementById('hudMin').textContent = min ? 'ขยาย' : 'ย่อ';
-  renderTutorialHud();
-  positionTutorialHud();   // the collapse changes its height, so re-clamp
-}
-
-function renderTutorialHud() {
-  if (!tutorial.hudOpen || !tutorial.compiled) return;
+// The transport row sits above the ring and is always present, so the
+// position readout has to be right before anything has been played.
+function renderPlayBar() {
+  if (!tutorial.compiled) return;
   const slot  = tutorialCursorSlot();
-  const hong  = Math.floor(slot / SLOTS_PER_HONG);
   const line  = Math.floor(slot / SLOTS_PER_VAK);
   const inVak = Math.floor((slot % SLOTS_PER_VAK) / SLOTS_PER_HONG) + 1;
 
-  document.getElementById('hudTitle').textContent = tutorial.compiled.song.title;
-  document.getElementById('hudPos').innerHTML =
+  document.getElementById('pbSong').textContent = tutorial.compiled.song.title;
+  document.getElementById('pbPos').innerHTML =
     `บรรทัด <b>${line + 1}</b> · ห้อง <b>${inVak}</b>` +
-    `<span class="hud-total"> / ${tutorial.compiled.totalHongs} ห้อง</span>`;
+    `<span class="pb-total"> / ${tutorial.compiled.totalHongs} ห้อง</span>`;
+  document.getElementById('pbPlay').textContent = tutorial.playing ? 'Pause' : 'Play';
+}
 
-  // The ห้อง under the cursor — มือขวา over มือซ้าย, as in the score.
-  // Skipped while collapsed: this rebuilds on every ห้อง change.
-  const base = hong * SLOTS_PER_HONG;
-  const here = tutorial.playing ? slot : -1;
-  if (!tutorial.hudMin) document.getElementById('hudStrip').innerHTML = ['right', 'left'].map(hand =>
-    '<div class="hud-row">' +
-    Array.from({ length: SLOTS_PER_HONG }, (_, s) => {
-      const cell = tutorial.compiled[hand][base + s];
-      const on   = base + s === here ? ' on' : '';
-      return `<div class="hud-cell${on}">` +
-             (cell ? cell.n.map(noteHTML).join('') : '−') + '</div>';
-    }).join('') + '</div>'
-  ).join('');
-
-  document.getElementById('hudPlay').textContent = tutorial.playing ? 'Pause' : 'Play';
-  document.getElementById('hudHint').textContent = tutorial.playing
-    ? 'พัก = ถอย 1 วรรค เพื่อซ้อมซ้ำ'
-    : `กด Play เพื่อเริ่มที่ บรรทัด ${line + 1}`;
+// Tempo lives in two places — beside the instrument and in the score panel —
+// so both inputs move together and a mid-run change re-anchors the same way.
+function setTutorialBpm(v) {
+  const bpm = Math.max(30, Math.min(300, v || 65));
+  document.getElementById('pbBpm').value = bpm;
+  document.getElementById('tutBpm').value = bpm;
+  if (tutorial.playing) {
+    // Re-anchor at the current จังหวะ so the new tempo applies from here
+    // instead of warping what is already scheduled.
+    const at = Math.max(tutorial.fromSlot, tutorial.shownSlot);
+    tutorial.bpm = bpm;
+    startTutorialPlayback(at);
+  } else {
+    tutorial.bpm = bpm;
+  }
 }
 
 // Send one บรรทัด (8 ห้อง = 1 วรรค = 32 จังหวะ) into the practice grid so it
@@ -3349,51 +3251,24 @@ function init() {
   document.getElementById('tutPlayBtn').addEventListener('click', () => {
     tutorial.playing ? stopTutorialPlayback(true) : startTutorialPlayback(0);
   });
-  document.getElementById('tutStopBtn').addEventListener('click', () => {
-    stopTutorialPlayback(true);
-    hideTutorialHud();
-  });
-
-  // Floating transport by the instrument
-  document.getElementById('hudPlay').addEventListener('click', () => {
-    tutorial.playing ? pauseTutorial() : startTutorialPlayback(tutorial.resumeSlot);
-  });
-  document.getElementById('hudMin').addEventListener('click',
-    () => setTutorialHudMin(!tutorial.hudMin));
-  document.getElementById('hudPrev').addEventListener('click', () => nudgeTutorialVak(-1));
-  document.getElementById('hudNext').addEventListener('click', () => nudgeTutorialVak(+1));
-  document.getElementById('hudClose').addEventListener('click', () => {
-    stopTutorialPlayback(true);
-    hideTutorialHud();
-  });
-  // Keep the HUD over the ring as the page moves under it. Coalesced to one
-  // frame — a raw scroll handler doing layout reads is a jank source.
-  let hudFrame = false;
-  const trackHud = () => {
-    if (hudFrame || !tutorial.hudOpen) return;
-    hudFrame = true;
-    requestAnimationFrame(() => { hudFrame = false; positionTutorialHud(); });
-  };
-  window.addEventListener('scroll', trackHud, { passive: true });
-  window.addEventListener('resize', trackHud);
+  document.getElementById('tutStopBtn').addEventListener('click',
+    () => stopTutorialPlayback(true));
   document.getElementById('tutTopBtn').addEventListener('click', () => {
     document.getElementById('tutScore').scrollTop = 0;
   });
 
-  const tutBpmInput = document.getElementById('tutBpm');
-  tutBpmInput.addEventListener('change', () => {
-    const v = Math.max(30, Math.min(300, +tutBpmInput.value || 65));
-    tutBpmInput.value = v;
-    if (tutorial.playing) {
-      // Re-anchor the run at the current จังหวะ so the new tempo takes effect
-      // from here instead of warping everything already scheduled.
-      const at = Math.max(tutorial.fromSlot, tutorial.shownSlot);
-      tutorial.bpm = v;
-      startTutorialPlayback(at);
-    } else {
-      tutorial.bpm = v;
-    }
+  // Transport row above the ring. Pause steps back a วรรค, so Play always
+  // resumes from wherever that left the cursor.
+  document.getElementById('pbPlay').addEventListener('click', () => {
+    tutorial.playing ? pauseTutorial() : startTutorialPlayback(tutorial.resumeSlot);
   });
+  document.getElementById('pbPrev').addEventListener('click', () => nudgeTutorialVak(-1));
+  document.getElementById('pbNext').addEventListener('click', () => nudgeTutorialVak(+1));
+
+  for (const id of ['pbBpm', 'tutBpm']) {
+    document.getElementById(id).addEventListener('change', (e) =>
+      setTutorialBpm(+e.target.value));
+  }
 
   // Keyboard — Thai music IME (split-hand). All detection via e.code so the
   // OS keyboard layout (Thai Kedmanee, US QWERTY, …) doesn't matter.
