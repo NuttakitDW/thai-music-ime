@@ -381,7 +381,9 @@ section.panel h3 {
     0 0 18px 5px rgba(0,217,95,0.32);
 }
 .gong.playing {
-  animation: gong-hit 0.4s ease-out;
+  /* duration is set per strike: during playback the glow has to be gone by
+     the next จังหวะ, or the ring shows a trail of notes already played */
+  animation: gong-hit var(--flash-ms, 400ms) ease-out;
 }
 @keyframes gong-hit {
   0%   { box-shadow: 0 0 0 3px rgba(0,217,95,1),    0 0 8px 2px rgba(0,217,95,0.7); }
@@ -1788,27 +1790,49 @@ function layoutGongs() {
 // usually dirty, so it can cost milliseconds. Audio is always scheduled
 // before flashGong() is called, so the whole visual pass is coalesced into
 // one rAF and never sits on the input path.
+// Free-play glow. Playback passes its own, shorter, tempo-derived value.
+const GONG_FLASH_MS = 400;
+// One pending clear per gong. Without this, re-striking a gong inside the
+// glow leaves the FIRST strike's timer running: it fires part-way through the
+// second flash and cuts it dark early.
+const gongFlashTimers = new Array(NUM_GONGS).fill(null);
+
 let pendingFlash = null;
-function flashGong(idx) {
+function flashGong(idx, ms = GONG_FLASH_MS) {
   if (pendingFlash === null) {
-    pendingFlash = new Set();
+    pendingFlash = new Map();
     requestAnimationFrame(() => {
       const batch = pendingFlash;
       pendingFlash = null;
-      batch.forEach(flashGongNow);
+      batch.forEach((dur, i) => flashGongNow(i, dur));
     });
   }
-  pendingFlash.add(idx);
+  // Same gong twice in one frame: keep the shorter glow — the one that will
+  // be over before the next note lands.
+  pendingFlash.set(idx, Math.min(ms, pendingFlash.get(idx) ?? Infinity));
 }
 
-function flashGongNow(idx) {
+// Cancel every glow outright, so a stopped run leaves nothing lit.
+function clearGongFlashes() {
+  for (let i = 0; i < NUM_GONGS; i++) {
+    if (gongFlashTimers[i]) { clearTimeout(gongFlashTimers[i]); gongFlashTimers[i] = null; }
+  }
+  document.querySelectorAll('.gong.playing').forEach(el => el.classList.remove('playing'));
+}
+
+function flashGongNow(idx, ms = GONG_FLASH_MS) {
   const el = document.querySelector(`.gong[data-idx="${idx}"]`);
   if (!el) return;
+  if (gongFlashTimers[idx]) clearTimeout(gongFlashTimers[idx]);
   el.classList.remove('playing');
   // force reflow so animation restarts even on rapid repeat
   void el.offsetWidth;
+  el.style.setProperty('--flash-ms', ms + 'ms');
   el.classList.add('playing');
-  setTimeout(() => el.classList.remove('playing'), 400);
+  gongFlashTimers[idx] = setTimeout(() => {
+    el.classList.remove('playing');
+    gongFlashTimers[idx] = null;
+  }, ms);
 }
 
 // Chord buffer — now keyed by HAND (left/right) instead of by pitch.
@@ -2443,7 +2467,8 @@ function startPlayback() {
       // + audioLatencyMs(): flash when the note is HEARD, not when the
       // audio thread starts rendering it
       const ms = Math.max(0, (t - ctx.currentTime) * 1000 + audioLatencyMs() - 5);
-      playbackVisualTimers.push(setTimeout(() => flashGong(gong), ms));
+      const glow = Math.min(GONG_FLASH_MS, beatDur * 1000 * 0.9);
+      playbackVisualTimers.push(setTimeout(() => flashGong(gong, glow), ms));
     }
   }
   playbackEndTimer = setTimeout(stopPlayback, (total * beatDur + 0.4) * 1000);
@@ -2460,6 +2485,7 @@ function stopPlayback(cutAudio = false) {
 
   playbackVisualTimers.forEach(clearTimeout);
   playbackVisualTimers = [];
+  clearGongFlashes();
 
   if (playbackEndTimer) { clearTimeout(playbackEndTimer); playbackEndTimer = null; }
 
@@ -2892,7 +2918,10 @@ function tutorialScheduler() {
       // audio thread starts rendering it), so the player can follow which
       // one to strike — the สะบัด flourish lights up as three separate hits.
       const ms = (at - ctx.currentTime) * 1000 + audioLatencyMs() - 5;
-      tutorial.visualTimers.push(setTimeout(() => flashGong(ev.g),
+      // Fade inside one จังหวะ so only the note being played is lit — a
+      // fixed glow outlasts the beat and leaves a trail of past notes.
+      const glow = Math.min(GONG_FLASH_MS, dur * 1000 * 0.9);
+      tutorial.visualTimers.push(setTimeout(() => flashGong(ev.g, glow),
                                             Math.max(0, ms)));
     }
     tutorial.nextSlot++;
@@ -2967,9 +2996,8 @@ function stopTutorialPlayback(cutAudio = false) {
     ching.visualTimers.forEach(clearTimeout);
     ching.visualTimers = [];
     // A gong lit microseconds before Stop would otherwise stay lit for the
-    // rest of its 400 ms animation.
-    document.querySelectorAll('.gong.playing')
-            .forEach(el => el.classList.remove('playing'));
+    // rest of its glow.
+    clearGongFlashes();
     const el = document.getElementById('chingIndicator');
     el.textContent = '·';
     el.classList.remove('hit-ching', 'hit-chap');
