@@ -701,18 +701,26 @@ section.panel h3 {
   background: rgba(198,255,90,0.20);
   box-shadow: inset 0 0 0 1px var(--high);
 }
-/* สะบัด — the flourish struck inside one จังหวะ */
+/* สะบัด — two gongs written inside one ช่อง */
 .tut-cell.sabat { font-size: 11.5px; letter-spacing: -0.5px; }
-.tut-cell.sabat.n3 { font-size: 9.5px; letter-spacing: -0.8px; }
 .tut-cell.sabat .nn { padding-left: 0.02em; padding-right: 0.02em; }
-.tut-cell.sabat::before {
+.tut-cell.sabat::before,
+.tut-cell.sabat-start::before {
   content: '';
   position: absolute; left: 16%; right: 16%; top: 1px;
   height: 4px;
   border-top: 1.2px solid var(--gold);
+  opacity: 0.75;
+}
+.tut-cell.sabat::before {
   border-left: 1.2px solid var(--gold);
   border-top-left-radius: 5px;
-  opacity: 0.75;
+}
+/* the opening note of a สะบัด that carries into the next ช่อง — the two
+   half-arcs read as the one tie the source draws across both cells */
+.tut-cell.sabat-start::before {
+  border-right: 1.2px solid var(--gold);
+  border-top-right-radius: 5px;
 }
 /* ตีเหลื่อม — struck off-sync with the other hand */
 .tut-late::after {
@@ -1021,7 +1029,7 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
       <span><b>บรรทัดล่าง</b> = มือซ้าย</span>
       <span><b>ช่องที่ 4</b> = จังหวะตก</span>
       <span><b>˒</b> = ตีเหลื่อม (ไม่ลงพร้อมอีกมือ)</span>
-      <span><b>⌐</b> = สะบัด (รัว 2–3 เสียง ภายในหนึ่งจังหวะ)</span>
+      <span><b>⌐</b> = สะบัด (รัวต่อเนื่อง ระยะห่างเท่ากัน)</span>
       <span><b>−</b> = ไม่ตี</span>
     </p>
 
@@ -2429,57 +2437,57 @@ function tickLoop() {
 const SATHUKAN_LINES = [
 {h:0,r:"---7|---8|---8|-a-b|-b-b|-b--|bb--|aa-7",l:"---4|---5|---1|-3-4|-7-8|-7-4|---3|---4"},
 {h:8,r:"---5|-4--|77--|88-9|-b-c|-b--|99--|88-7",l:"---2|-1-0|---1|---2|-4-5|-4-2|---1|---0"},
-{h:16,r:"-9--|-7--|----|---(678)|--bb|-c-b|-a-8|-a-b",l:"---8|-4--|-(654)-5|----|-4--|-5-4|-3-5|-3-4"},
-{h:24,r:"-e-f|-e--|cc--|bb-a|---(abc)|-e-f|-e-d|-c-b",l:"-7-8|-7-5|---4|---3|----|-7-8|-7-6|-5-4"},
+{h:16,r:"-9--|-7--|6^---|---(78)|--bb|-c-b|-a-8|-a-b",l:"---8|-4--|-(54)-5|--6^-|-4--|-5-4|-3-5|-3-4"},
+{h:24,r:"-e-f|-e--|cc--|bb-a|---(bc)|-e-f|-e-d|-c-b",l:"-7-8|-7-5|---4|---3|--a^-|-7-8|-7-6|-5-4"},
 {h:32,r:"-8~--|87-8|-b--|a--b|-c-e|-c--|bb--|aa-8",l:"-7-5|-4-5|-4-3|-a-4|-5-7|-5-4|---3|---5"},
-{h:40,r:"----|-8--|-7-7|--cc|-a--|-(abc)-e|-f-e|-c-b",l:"---(987)|---0|---4|-5--|-7--|---7|-8-7|-5-4"},
-{h:48,r:"-c-e|-c--|bb--|aa-8|----|---(678)|--88|-a-b",l:"-5-7|-5-4|---3|---5|-4-5|----|-1--|-3-4"},
+{h:40,r:"--9^-|-8--|-7-7|--cc|-a--|-(bc)-e|-f-e|-c-b",l:"---(87)|---0|---4|-5--|-7--|a^--7|-8-7|-5-4"},
+{h:48,r:"-c-e|-c--|bb--|aa-8|----|---(78)|--88|-a-b",l:"-5-7|-5-4|---3|---5|-4-5|--6^-|-1--|-3-4"},
 {h:56,r:"-cbb|--bb|-7-a|--bc|-e-f|-e--|cc--|bb-a",l:"---7|-4--|-4-3|---5|-7-8|-7-5|---4|---3"},
-{h:64,r:"----|-8--|-7-7|--aa|--bb|-c--|aa--|bb-c",l:"---(987)|---0|---4|-3--|-4--|-5-3|---4|---5"},
-{h:72,r:"-c--|bb--|cc--|ee-f|---(789)|-b--|-b--|----",l:"-5-4|---5|---7|---8|----|---8|-7--|-(987)-5"},
-{h:80,r:"-e-f|-e--|cc--|bb-a|---(abc)|-e-f|-e-d|-c-b",l:"-7-8|-7-5|---4|---3|----|-7-8|-7-6|-5-4"},
+{h:64,r:"--9^-|-8--|-7-7|--aa|--bb|-c--|aa--|bb-c",l:"---(87)|---0|---4|-3--|-4--|-5-3|---4|---5"},
+{h:72,r:"-c--|bb--|cc--|ee-f|---(89)|-b--|-b--|9^---",l:"-5-4|---5|---7|---8|--7^-|---8|-7--|-(87)-5"},
+{h:80,r:"-e-f|-e--|cc--|bb-a|---(bc)|-e-f|-e-d|-c-b",l:"-7-8|-7-5|---4|---3|--a^-|-7-8|-7-6|-5-4"},
 {h:88,r:"-8~--|87-8|-b--|a--b|-c-e|-c--|bb--|aa-8",l:"-7-5|-4-5|-4-3|-a-4|-5-7|-5-4|---3|---5"},
-{h:96,r:"-9-8|-7--|----|---(678)|--bb|-c-b|-a-8|-a-b",l:"----|-4--|-(654)-5|----|-4--|-5-4|-3-5|-3-4"},
-{h:104,r:"-e-f|-e--|cc--|bb-a|---(abc)|-e-f|-e-d|-c-b",l:"-7-8|-7-5|---4|---3|----|-7-8|-7-6|-5-4"},
+{h:96,r:"-9-8|-7--|6^---|---(78)|--bb|-c-b|-a-8|-a-b",l:"----|-4--|-(54)-5|--6^-|-4--|-5-4|-3-5|-3-4"},
+{h:104,r:"-e-f|-e--|cc--|bb-a|---(bc)|-e-f|-e-d|-c-b",l:"-7-8|-7-5|---4|---3|--a^-|-7-8|-7-6|-5-4"},
 {h:112,r:"-8~--|87-8|-b--|a--b|-c-e|-c--|bb--|aa-8",l:"-7-5|-4-5|-4-3|-a-4|-5-7|-5-4|---3|---5"},
 {h:120,r:"--bb|--bb|-b--|aa-b|--cc|-b--|99--|88-7",l:"-4--|-4--|-4-3|---4|-5--|-4-2|---1|---0"},
 {h:128,r:"--bb|-c-a|-b-c|-d-e|--ff|-e--|cc--|bb-a",l:"-4--|-5-3|-4-5|-6-7|-8--|-7-5|---4|---3"},
 {h:136,r:"-baa|--aa|-7-a|---(bc)|-e-f|-e--|cc--|bb-a",l:"---6|-3--|-4-3|---5|-7-8|-7-5|---4|---3"},
-{h:144,r:"---(789)|-b--|-b--|---5|-55-|444-|55--|77-8",l:"----|---8|-7--|-(987)--|-2-1|---2|---0|---1"},
-{h:152,r:"--aa|-b-7|----|-(678)-a|a-bb|-c--|aa--|bb-c",l:"-3--|-4-4|-5--|---3|-4--|-5-3|---4|---5"},
-{h:160,r:"---(abc)|-e-f|-f-f|-e-c|-e-f|-e--|cc--|bb-a",l:"----|-7-8|-a-8|-7-5|-7-8|-7-5|---4|---3"},
+{h:144,r:"---(89)|-b--|-b--|9^--5|-55-|444-|55--|77-8",l:"--7^-|---8|-7--|-(87)--|-2-1|---2|---0|---1"},
+{h:152,r:"--aa|-b-7|----|-(78)-a|a-bb|-c--|aa--|bb-c",l:"-3--|-4-4|-5--|6^--3|-4--|-5-3|---4|---5"},
+{h:160,r:"---(bc)|-e-f|-f-f|-e-c|-e-f|-e--|cc--|bb-a",l:"--a^-|-7-8|-a-8|-7-5|-7-8|-7-5|---4|---3"},
 {h:168,r:"-8--|77--|88--|aa-b|-a-b|-c-d|-fed|-c-b",l:"-5-4|---5|---3|---4|-3-4|-5-6|-876|-5-4"},
-{h:176,r:"---7|---(789)|-b-b|----|----|---7|----|-(678)-a",l:"-4--|----|---9|---(987)|---(654)|-5-4|-5--|---3"},
-{h:184,r:"---(678)|-a-b|-c-b|-a-8|-8--|77--|88--|aa-b",l:"----|-3-4|-5-4|-3-5|-5-4|---5|---3|---4"},
-{h:192,r:"-c-b|-a-8|---(678)|-a-b|---7|----|---5|---(555)",l:"-5-4|-3-5|----|-3-4|---4|---(654)|---2|----"},
-{h:200,r:"-55-|44--|55--|77-8|---(789)|-b--|-b--|----",l:"-2-1|---2|---0|---1|----|---8|-7--|-(987)-5"},
-{h:208,r:"----|----|---7|---(789)|-b-c|-b--|99--|88-7",l:"---(654)|---(987)|-4--|----|-4-5|-4-2|---1|---0"},
-{h:216,r:"--bb|-c-a|-b-c|-d-e|----|----|---7|---(789)",l:"-4--|-5-3|-4-5|-6-7|---(654)|---(987)|-4--|----"},
-{h:224,r:"---(789)|-b-c|-e-c|-b-9|-b-c|-bb-|99--|88-7",l:"----|-4-5|-7-5|-4-6|-4-5|-4-2|---1|---0"},
-{h:232,r:"-9--|-7--|----|---(678)|--bb|-c-b|-a-8|-a-b",l:"---8|-4--|-(654)-5|----|-4--|-5-4|-3-5|-3-4"},
-{h:240,r:"-e-f|-e--|cc--|bb-a|---(abc)|-e-f|-e-d|-c-b",l:"-7-8|-7-5|---4|---3|----|-7-8|-7-6|-5-4"},
+{h:176,r:"---7|---(89)|-b-b|--9^-|--6^-|---7|----|-(78)-a",l:"-4--|--7^-|---9|---(87)|---(54)|-5-4|-5--|6^--3"},
+{h:184,r:"---(78)|-a-b|-c-b|-a-8|-8--|77--|88--|aa-b",l:"--6^-|-3-4|-5-4|-3-5|-5-4|---5|---3|---4"},
+{h:192,r:"-c-b|-a-8|---(78)|-a-b|---7|--6^-|---5|---(55)",l:"-5-4|-3-5|--6^-|-3-4|---4|---(54)|---2|--5^-"},
+{h:200,r:"-55-|44--|55--|77-8|---(89)|-b--|-b--|9^---",l:"-2-1|---2|---0|---1|--7^-|---8|-7--|-(87)-5"},
+{h:208,r:"--6^-|--9^-|---7|---(89)|-b-c|-b--|99--|88-7",l:"---(54)|---(87)|-4--|--7^-|-4-5|-4-2|---1|---0"},
+{h:216,r:"--bb|-c-a|-b-c|-d-e|--6^-|--9^-|---7|---(89)",l:"-4--|-5-3|-4-5|-6-7|---(54)|---(87)|-4--|--7^-"},
+{h:224,r:"---(89)|-b-c|-e-c|-b-9|-b-c|-bb-|99--|88-7",l:"--7^-|-4-5|-7-5|-4-6|-4-5|-4-2|---1|---0"},
+{h:232,r:"-9--|-7--|6^---|---(78)|--bb|-c-b|-a-8|-a-b",l:"---8|-4--|-(54)-5|--6^-|-4--|-5-4|-3-5|-3-4"},
+{h:240,r:"-e-f|-e--|cc--|bb-a|---(bc)|-e-f|-e-d|-c-b",l:"-7-8|-7-5|---4|---3|--a^-|-7-8|-7-6|-5-4"},
 {h:248,r:"-8~--|87-8|-b--|aa-b|-e-c|-b--|99--|88-7",l:"-7-5|-4-5|-4-3|---4|-7-5|-4-2|---1|---0"},
 {h:256,r:"---5|-4--|77--|88-9|-b-c|-b--|99--|88-7",l:"---2|-1-0|---1|---2|-4-5|-4-2|---1|---0"},
-{h:264,r:"-9--|-7--|----|---(678)|--bb|-c-b|-a-8|-a-b",l:"---8|-4--|-(654)-5|----|-4--|-5-4|-3-5|-3-4"},
-{h:272,r:"-e-f|-e--|cc--|bb-a|---(abc)|-e-f|-e-d|-c-b",l:"-7-8|-7-5|---4|---3|----|-7-8|-7-6|-5-4"},
+{h:264,r:"-9--|-7--|6^---|---(78)|--bb|-c-b|-a-8|-a-b",l:"---8|-4--|-(54)-5|--6^-|-4--|-5-4|-3-5|-3-4"},
+{h:272,r:"-e-f|-e--|cc--|bb-a|---(bc)|-e-f|-e-d|-c-b",l:"-7-8|-7-5|---4|---3|--a^-|-7-8|-7-6|-5-4"},
 {h:280,r:"-8~--|87-8|-b--|a--b|-c-e|-c--|bb--|aa-8",l:"-7-5|-4-5|-4-3|-a-4|-5-7|-5-4|---3|---5"},
-{h:288,r:"----|-8--|-7-7|--cc|-a--|-(abc)-e|-f-e|-c-b",l:"---(987)|---0|---4|-5--|-7--|---7|-8-7|-5-4"},
-{h:296,r:"-c-e|-c--|bb--|aa-8|----|---(678)|--88|-a-b",l:"-5-7|-5-4|---3|---5|-4-5|----|-1--|-3-4"},
+{h:288,r:"--9^-|-8--|-7-7|--cc|-a--|-(bc)-e|-f-e|-c-b",l:"---(87)|---0|---4|-5--|-7--|a^--7|-8-7|-5-4"},
+{h:296,r:"-c-e|-c--|bb--|aa-8|----|---(78)|--88|-a-b",l:"-5-7|-5-4|---3|---5|-4-5|--6^-|-1--|-3-4"},
 {h:304,r:"-cbb|--bb|-7-a|---(bc)|-e-f|-e--|cc--|bb-a",l:"---7|-4--|-4-3|---5|-7-8|-7-5|---4|---3"},
-{h:312,r:"----|-8--|-7-7|--aa|--bb|-c--|aa--|bb-c",l:"---(987)|---0|---4|-3--|-4--|-5-3|---4|---5"},
-{h:320,r:"-c--|bb--|cc--|ee-f|---(789)|-b--|-b--|----",l:"-5-4|---5|---7|---8|----|---8|-7--|-(987)-5"},
-{h:328,r:"-e-f|-e--|cc--|bb-a|---(abc)|-e-f|-e-d|-c-b",l:"-7-8|-7-5|---4|---3|----|-7-8|-7-6|-5-4"},
+{h:312,r:"--9^-|-8--|-7-7|--aa|--bb|-c--|aa--|bb-c",l:"---(87)|---0|---4|-3--|-4--|-5-3|---4|---5"},
+{h:320,r:"-c--|bb--|cc--|ee-f|---(89)|-b--|-b--|9^---",l:"-5-4|---5|---7|---8|--7^-|---8|-7--|-(87)-5"},
+{h:328,r:"-e-f|-e--|cc--|bb-a|---(bc)|-e-f|-e-d|-c-b",l:"-7-8|-7-5|---4|---3|--a^-|-7-8|-7-6|-5-4"},
 {h:336,r:"-8~--|87-8|-bb-|a--b|-c-e|-c--|bb--|aa-8",l:"-7-5|-4-5|-4-3|-a-4|-5-7|-5-4|---3|---5"},
-{h:344,r:"-9-8|-7--|----|---(678)|--bb|-c-b|-a-8|-a-b",l:"----|-4--|-(654)-5|----|-4--|-5-4|-3-5|-3-4"},
-{h:352,r:"-e-f|-e--|cc--|bb-a|---(abc)|-e-f|-e-d|-c-b",l:"-7-8|-7-5|---4|---3|----|-7-8|-7-6|-5-4"},
+{h:344,r:"-9-8|-7--|6^---|---(78)|--bb|-c-b|-a-8|-a-b",l:"----|-4--|-(54)-5|--6^-|-4--|-5-4|-3-5|-3-4"},
+{h:352,r:"-e-f|-e--|cc--|bb-a|---(bc)|-e-f|-e-d|-c-b",l:"-7-8|-7-5|---4|---3|--a^-|-7-8|-7-6|-5-4"},
 {h:360,r:"-8~--|87-8|-bb-|a--b|-c-e|-c--|bb--|aa-8",l:"-7-5|-4-5|-4-3|-a-4|-5-7|-5-4|---3|---5"},
 {h:368,r:"--bb|--bb|-b--|aa-b|--cc|-b--|99--|88-7",l:"-4--|-4--|-4-3|---4|-5--|-4-2|---1|---0"},
 {h:376,r:"--bb|-c-a|-b-c|-d-e|--ff|-e--|cc--|bb-a",l:"-4--|-5-3|-4-5|-6-7|-8--|-7-5|---4|---3"},
 {h:384,r:"-baa|--aa|-7-a|---(bc)|-e-f|-e--|cc--|bb-a",l:"---6|-3--|-4-3|---5|-7-8|-7-5|---4|---3"},
-{h:392,r:"---(789)|-b--|-b--|---5|-55-|44--|55--|77-8",l:"----|---8|-7--|-(987)--|-2-1|---2|---0|---1"},
+{h:392,r:"---(89)|-b--|-b--|9^--5|-55-|44--|55--|77-8",l:"--7^-|---8|-7--|-(87)--|-2-1|---2|---0|---1"},
 {h:400,r:"-c--|cc-e|-f-e|-c-b|-c-e|-c--|bb--|aa-8",l:"-5-5|---7|-8-7|-5-4|-5-7|-5-4|---3|---5"},
-{h:408,r:"-9-8|-7--|----|---(678)|--bb|-c-b|-a-8|-a-b",l:"----|-4--|-(654)-5|----|-4--|-5-4|-3-5|-3-4"},
-{h:416,r:"-e-f|-e--|cc--|bb-a|---(abc)|-e-f|-e-d|-c-b",l:"-7-8|-7-5|---4|---3|----|-7-8|-7-6|-5-4"},
+{h:408,r:"-9-8|-7--|6^---|---(78)|--bb|-c-b|-a-8|-a-b",l:"----|-4--|-(54)-5|--6^-|-4--|-5-4|-3-5|-3-4"},
+{h:416,r:"-e-f|-e--|cc--|bb-a|---(bc)|-e-f|-e-d|-c-b",l:"-7-8|-7-5|---4|---3|--a^-|-7-8|-7-6|-5-4"},
 {h:424,r:"-8~--|87-8|-b--|aa-b|-e-c|-b--|99--|88-7",l:"-7-5|-4-5|-4-3|---4|-7-5|-4-2|---1|---0"}
 ];
 
@@ -2490,11 +2498,11 @@ const SATHUKAN_LINES = [
 // 8 ห้อง separated by '|', each ห้อง exactly 4 จังหวะ. Per จังหวะ:
 //     -        ไม่ตี (rest)
 //     0-9a-f   one gong — index into NOTE_BASE / FREQS
-//     (xy…)   สะบัด — the whole flourish inside the one จังหวะ. The source
-//              spreads a 3-note สะบัด over two ช่อง (a single note in one
-//              hand, then the pair in the other on the next จังหวะ) and ties
-//              them with an arc; here the figure is collapsed onto the
-//              จังหวะ it lands on, which is how it is actually struck.
+//     (xy)     สะบัด — two gongs written inside the one จังหวะ
+//     ^        (suffix) this note begins a สะบัด that carries on into the
+//              next จังหวะ in the OTHER hand — the source ties the two
+//              cells with an arc. Layout matches the source exactly; only
+//              the timing is resolved, in compileSong below.
 //     ~        (suffix) ตีเหลื่อม — struck off-sync with the other hand
 // Pitches are stored in THIS instrument's register, so the reader below
 // performs no transposition at runtime.
@@ -2537,8 +2545,10 @@ function parseScoreLine(str) {
         slots.push({ n: [ SCORE_ALPHABET.indexOf(c) ], late: false });
         i += 1;
       }
-      if (hongStr[i] === '~') {       // ตีเหลื่อม marks the จังหวะ just read
-        if (slots[slots.length - 1]) slots[slots.length - 1].late = true;
+      // modifiers attach to the จังหวะ just read
+      while (hongStr[i] === '~' || hongStr[i] === '^') {
+        const cell = slots[slots.length - 1];
+        if (cell) cell[hongStr[i] === '~' ? 'late' : 'start'] = true;
         i += 1;
       }
     }
@@ -2546,7 +2556,8 @@ function parseScoreLine(str) {
   });
 }
 
-// Flatten a whole song into one lookup per hand, indexed by global จังหวะ.
+// Flatten a whole song into one lookup per hand, indexed by global จังหวะ,
+// plus `fire`: every strike resolved to an offset in จังหวะ from its cell.
 function compileSong(song) {
   const right = [], left = [];
   for (const line of song.lines) {
@@ -2556,11 +2567,48 @@ function compileSong(song) {
       }
     }
   }
+  const hands = { right, left };
+  const total = right.length;
+  const other = h => (h === 'right' ? 'left' : 'right');
+
+  // A สะบัด is one flourish, so its notes divide the span it occupies
+  // EVENLY — that even spacing is what makes it sound smooth. A 3-note
+  // สะบัด written across two ช่อง spans 2 จังหวะ, so the notes step by 2/3,
+  // NOT 1 then 1/2 (which is where they land if each cell is read on its
+  // own, and it audibly limps). Two gongs written inside a single ช่อง
+  // span 1 จังหวะ and step by 1/2. Both are just span / noteCount.
+  const figure = new Map();     // "hand+slot" of the opening note → all its notes
+  const consumed = new Set();   // continuation cells, already spoken for
+  for (const hand of ['right', 'left']) {
+    hands[hand].forEach((slot, i) => {
+      if (!slot || !slot.start) return;
+      const cont = hands[other(hand)][i + 1];
+      if (!cont) return;
+      figure.set(hand + i, [...slot.n, ...cont.n]);
+      consumed.add(other(hand) + (i + 1));
+    });
+  }
+
+  const fire = Array.from({ length: total }, () => []);
+  for (const hand of ['right', 'left']) {
+    hands[hand].forEach((slot, i) => {
+      if (!slot || consumed.has(hand + i)) return;
+      const notes = figure.get(hand + i) || slot.n;
+      const span  = figure.has(hand + i) ? 2 : 1;
+      const step  = span / notes.length;
+      // ตีเหลื่อม lands deliberately behind the other hand.
+      const skew  = slot.late ? 0.34 : 0;
+      notes.forEach((g, k) => {
+        fire[i].push({ g, off: skew + k * step, v: k === 0 ? 1 : 0.85 });
+      });
+    });
+  }
+
   return {
     song,
-    right, left,
-    totalSlots: right.length,
-    totalHongs: right.length / SLOTS_PER_HONG,
+    right, left, fire,
+    totalSlots: total,
+    totalHongs: total / SLOTS_PER_HONG,
   };
 }
 
@@ -2644,10 +2692,10 @@ function renderTutorialScore() {
           if (slot) {
             cell.innerHTML = slot.n.map(noteHTML).join('');
             if (slot.n.length > 1) cell.classList.add('sabat');
-            if (slot.n.length > 2) cell.classList.add('n3');
+            if (slot.start) cell.classList.add('sabat-start');
             if (slot.late) cell.classList.add('tut-late');
             cell.title = slot.n.map(noteText).join(' ') +
-                         (slot.n.length > 1 ? ' · สะบัด' : '') +
+                         (slot.n.length > 1 || slot.start ? ' · สะบัด' : '') +
                          (slot.late ? ' · ตีเหลื่อม' : '');
             cell.addEventListener('click', () => {
               primeAudio();
@@ -2742,7 +2790,7 @@ function tutorialScheduler() {
   if (!tutorial.playing) return;
   const ctx = ac();
   const dur = tutSlotDur();
-  const { right, left, totalSlots } = tutorial.compiled;
+  const { fire, totalSlots } = tutorial.compiled;
   const horizon = ctx.currentTime + TUT_LOOKAHEAD_S;
 
   while (tutorial.nextSlot < totalSlots) {
@@ -2760,17 +2808,11 @@ function tutorialScheduler() {
                                            Math.max(0, ms)));
     }
 
-    for (const arr of [right, left]) {
-      const slot = arr[tutorial.nextSlot];
-      if (!slot) continue;
-      // ตีเหลื่อม lands deliberately behind the other hand; สะบัด splits the
-      // จังหวะ into two quick strikes.
-      const skew = slot.late ? dur * 0.34 : 0;
-      slot.n.forEach((g, k) => {
-        const at = t + skew + k * (dur / slot.n.length);
-        const master = playGong(g, at, k === 0 ? 1 : 0.85);
-        if (master) tutorial.activeMasters.push(master);
-      });
+    // Strike times were resolved in compileSong — สะบัด figures already
+    // carry their even spacing here, so this just plays what it is given.
+    for (const ev of fire[tutorial.nextSlot]) {
+      const master = playGong(ev.g, t + ev.off * dur, ev.v);
+      if (master) tutorial.activeMasters.push(master);
     }
     tutorial.nextSlot++;
   }
