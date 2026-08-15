@@ -375,10 +375,18 @@ section.panel h3 {
   transition: box-shadow 0.15s;
   transform: translate(-50%, -50%);
 }
-.gong:hover {
-  box-shadow:
-    0 0 0 2px rgba(0,217,95,0.7),
-    0 0 18px 5px rgba(0,217,95,0.32);
+/* Hover feedback only where a pointer can actually leave again. On touch,
+   :hover latches after a tap and the gong stays lit until something else is
+   tapped — indistinguishable from a strike that never faded. */
+@media (hover: hover) and (pointer: fine) {
+  .gong:hover {
+    box-shadow:
+      0 0 0 2px rgba(0,217,95,0.7),
+      0 0 18px 5px rgba(0,217,95,0.32);
+  }
+  /* While a run is playing the lit gong means "strike this now", so a
+     resting cursor must not light one too. */
+  body.tut-running .gong:hover { box-shadow: none; }
 }
 .gong.playing {
   /* duration is set per strike: during playback the glow has to be gone by
@@ -568,6 +576,25 @@ section.panel h3 {
 .pb-pos b { color: var(--accent); font-weight: 600; }
 .pb-total { color: var(--dim); }
 .pb-spacer { flex: 1 1 auto; }
+/* The current วรรค under the transport — same cells as the score reader, at
+   reading size for someone sitting at the instrument. */
+.vak-wrap {
+  overflow-x: auto; overscroll-behavior-x: contain;
+  margin-bottom: 14px; padding-bottom: 2px;
+  scrollbar-width: thin; scrollbar-color: var(--border-lit) transparent;
+}
+.vak-wrap::-webkit-scrollbar { height: 6px; }
+.vak-wrap::-webkit-scrollbar-thumb { background: var(--border-lit); border-radius: 3px; }
+.vak-strip {
+  display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px;
+  min-width: 620px;
+  font-family: var(--font-mono);
+}
+/* read-only here — the score panel is where cells are auditioned */
+.vak-strip .tut-cell { cursor: default; }
+.vak-strip .tut-cell:hover { background: none; }
+.vak-strip .tut-cell.drop:hover { background: rgba(255,255,255,0.022); }
+
 /* the three transport buttons stay one unit, never split across a wrap */
 .pb-btns { display: flex; gap: 6px; }
 .play-bar .btn { padding: 7px 12px; font-size: 12px; }
@@ -1030,12 +1057,20 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
       <span class="control-label">Tempo</span>
       <input type="number" id="pbBpm" class="tempo-input" min="30" max="300" value="65">
       <span class="control-label">bpm</span>
+      <div class="pill-group" id="pbSoundGroup">
+        <button class="btn active" type="button" data-sound="on">มีเสียง</button>
+        <button class="btn" type="button" data-sound="off"
+                title="ปิดเสียงฆ้อง เหลือไฟบอกตำแหน่งกับฉิ่งไว้ตีเอง">เงียบ</button>
+      </div>
       <span class="pb-btns">
         <button class="btn" id="pbPrev" type="button" title="ถอย 1 วรรค">−วรรค</button>
         <button class="btn primary" id="pbPlay" type="button">Play</button>
         <button class="btn" id="pbNext" type="button" title="เดินหน้า 1 วรรค">+วรรค</button>
       </span>
     </div>
+
+    <!-- The วรรค being played, so the phrase is readable from the instrument -->
+    <div class="vak-wrap"><div class="vak-strip" id="vakStrip"></div></div>
 
     <div class="gong-stage" id="gong-stage">
       <div class="player-mark">ผู้บรรเลง<br><span style="font-size:9px;letter-spacing:0.5px;text-transform:uppercase;">player</span></div>
@@ -2707,6 +2742,10 @@ const tutorial = {
   startTime: 0,         // ctx time of จังหวะ 0 of this run
   fromSlot: 0,          // จังหวะ the run began at
   resumeSlot: 0,        // จังหวะ the next Play will pick up from
+  muted: false,         // silent practice — lights and ฉิ่ง, no gong notes
+  vakLine: -1,          // บรรทัด currently built into the strip
+  vakCells: { right: {}, left: {} },   // global จังหวะ → strip element
+  vakLit: -1,
   nextSlot: 0,          // next จังหวะ still to be scheduled
   timer: null,
   shownSlot: -1,
@@ -2841,6 +2880,7 @@ function setTutorialSong(id) {
   stopTutorialPlayback(true);
   tutorial.resumeSlot = 0;
   tutorial.compiled = compileSong(song);
+  tutorial.vakLine = -1;      // strip belongs to the previous score
   tutorial.bpm = song.bpm;
   document.getElementById('tutBpm').value = song.bpm;
   document.getElementById('pbBpm').value  = song.bpm;
@@ -2877,6 +2917,7 @@ function startTutorialPlayback(fromSlot = 0) {
 
   tutorial.resumeSlot = tutorial.fromSlot;
   tutorial.lineEls.forEach(el => el.classList.remove('resume'));
+  document.body.classList.add('tut-running');
   renderPlayBar();
 
   tutorial.timer = setInterval(tutorialScheduler, TUT_TICK_MS);
@@ -2912,8 +2953,12 @@ function tutorialScheduler() {
       // A สะบัด's grace note sits BEFORE its จังหวะ, so starting playback
       // right on one would ask for a time already past — clamp to now.
       const at = Math.max(t + ev.off * dur, ctx.currentTime);
-      const master = playGong(ev.g, at, ev.v);
-      if (master) tutorial.activeMasters.push(master);
+      // Silent practice: the lights still say which gong and when, so the
+      // player supplies the note. ฉิ่ง keeps going as the time reference.
+      if (!tutorial.muted) {
+        const master = playGong(ev.g, at, ev.v);
+        if (master) tutorial.activeMasters.push(master);
+      }
       // Light the gong on the instrument as the note is HEARD (not when the
       // audio thread starts rendering it), so the player can follow which
       // one to strike — the สะบัด flourish lights up as three separate hits.
@@ -2958,6 +3003,9 @@ function paintTutorialSlot(slot) {
     if (prev >= 0) tutorial.cells[hand][prev]?.classList.remove('hit');
     tutorial.cells[hand][slot]?.classList.add('hit');
   }
+  // the strip's cursor moves every จังหวะ, not only on a ห้อง boundary
+  tutorial.shownSlot = slot;
+  renderVakStrip();
   const hong     = Math.floor(slot / SLOTS_PER_HONG);
   const prevHong = prev >= 0 ? Math.floor(prev / SLOTS_PER_HONG) : -1;
   if (hong !== prevHong) {
@@ -2987,6 +3035,7 @@ function stopTutorialPlayback(cutAudio = false) {
   if (tutorial.timer) { clearInterval(tutorial.timer); tutorial.timer = null; }
   const wasPlaying = tutorial.playing;
   tutorial.playing = false;
+  document.body.classList.remove('tut-running');
 
   tutorial.visualTimers.forEach(clearTimeout);
   tutorial.visualTimers = [];
@@ -3088,6 +3137,77 @@ function renderPlayBar() {
     `บรรทัด <b>${line + 1}</b> · ห้อง <b>${inVak}</b>` +
     `<span class="pb-total"> / ${tutorial.compiled.totalHongs} ห้อง</span>`;
   document.getElementById('pbPlay').textContent = tutorial.playing ? 'Pause' : 'Play';
+  renderVakStrip();
+}
+
+// The whole วรรค under the transport. Rebuilt only when the บรรทัด changes —
+// during a run only the cursor class moves, so playback never pays for 64
+// cells of DOM work on every จังหวะ.
+function renderVakStrip() {
+  if (!tutorial.compiled) return;
+  const slot = tutorialCursorSlot();
+  const line = Math.floor(slot / SLOTS_PER_VAK);
+  if (line !== tutorial.vakLine) buildVakStrip(line);
+  paintVakCursor(tutorial.playing ? slot : -1);
+}
+
+function buildVakStrip(line) {
+  const root = document.getElementById('vakStrip');
+  root.innerHTML = '';
+  tutorial.vakLine = line;
+  tutorial.vakCells = { right: {}, left: {} };
+  tutorial.vakLit = -1;
+  const ching = tutorial.compiled.song.ching === 'ฉิ่งล้วน' ? 'ฉิ่ง' : '';
+  const frag = document.createDocumentFragment();
+
+  for (let h = 0; h < HONGS_PER_LINE; h++) {
+    const hongIdx = line * HONGS_PER_LINE + h;
+    const base    = hongIdx * SLOTS_PER_HONG;
+    if (base >= tutorial.compiled.totalSlots) break;
+
+    const hongEl = document.createElement('div');
+    hongEl.className = 'tut-hong';
+    const head = document.createElement('div');
+    head.className = 'tut-hong-head';
+    head.innerHTML = `<span class="no">${hongIdx + 1}</span><span class="ching">${ching}</span>`;
+    hongEl.appendChild(head);
+
+    for (const hand of ['right', 'left']) {
+      const stave = document.createElement('div');
+      stave.className = 'tut-stave ' + hand;
+      for (let s = 0; s < SLOTS_PER_HONG; s++) {
+        const g = base + s;
+        const cell = document.createElement('div');
+        cell.className = 'tut-cell';
+        if (s === SLOTS_PER_HONG - 1) cell.classList.add('drop');   // จังหวะตก
+        const data = tutorial.compiled[hand][g];
+        if (data) {
+          cell.innerHTML = data.n.map(noteHTML).join('');
+          if (data.n.length > 1) cell.classList.add('sabat');
+          if (data.start)        cell.classList.add('sabat-start');
+          if (data.late)         cell.classList.add('tut-late');
+          cell.title = data.n.map(noteText).join(' ');
+        } else {
+          cell.textContent = '−';
+          cell.classList.add('rest');
+        }
+        tutorial.vakCells[hand][g] = cell;
+        stave.appendChild(cell);
+      }
+      hongEl.appendChild(stave);
+    }
+    frag.appendChild(hongEl);
+  }
+  root.appendChild(frag);
+}
+
+function paintVakCursor(slot) {
+  if (slot === tutorial.vakLit) return;
+  for (const hand of ['right', 'left']) {
+    tutorial.vakCells[hand][tutorial.vakLit]?.classList.remove('hit');
+    if (slot >= 0) tutorial.vakCells[hand][slot]?.classList.add('hit');
+  }
+  tutorial.vakLit = slot;
 }
 
 // Tempo lives in two places — beside the instrument and in the score panel —
@@ -3289,6 +3409,13 @@ function init() {
   // resumes from wherever that left the cursor.
   document.getElementById('pbPlay').addEventListener('click', () => {
     tutorial.playing ? pauseTutorial() : startTutorialPlayback(tutorial.resumeSlot);
+  });
+  document.querySelectorAll('#pbSoundGroup .btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      tutorial.muted = btn.dataset.sound === 'off';
+      document.querySelectorAll('#pbSoundGroup .btn').forEach(x =>
+        x.classList.toggle('active', x === btn));
+    });
   });
   document.getElementById('pbPrev').addEventListener('click', () => nudgeTutorialVak(-1));
   document.getElementById('pbNext').addEventListener('click', () => nudgeTutorialVak(+1));
