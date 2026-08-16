@@ -185,6 +185,10 @@ section.panel h3 {
 .btn.active {
   background: var(--accent); border-color: var(--accent); color: #04150a;
 }
+.btn:disabled {
+  opacity: 0.32; cursor: default;
+  border-color: var(--border); background: var(--panel-2); color: var(--text);
+}
 /* Slide toggle (used for Record) */
 .toggle {
   display: inline-flex;
@@ -594,6 +598,191 @@ section.panel h3 {
 .pb-aux .pill-group .btn { padding: 5px 9px; font-size: 11px; }
 .play-bar .btn { padding: 6px 8px; font-size: 11.5px; text-align: center; }
 .play-bar .tempo-input { padding: 5px 8px; width: 56px; font-size: 12px; }
+
+/* Performance mode — บรรเลง.
+   The transport keeps its footprint: the mode pills replace nothing, and
+   the live score block only exists while the mode is on. */
+.pb-mode { align-self: stretch; }
+.pb-mode .btn { flex: 1; padding: 4px 6px; font-size: 11px; }
+body.perf-mode .play-bar { border-top-color: var(--gold); }
+body.perf-mode .pb-tag { color: var(--gold); }
+/* Tempo is fixed once a scored run is under way — the judged timeline was
+   laid out against it — so the input reads as locked rather than broken. */
+body.perf-running .play-bar .tempo-input { opacity: 0.45; pointer-events: none; }
+
+.pb-perf[hidden] { display: none; }   /* author display: beats UA [hidden] */
+.pb-perf {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 9px;
+  background: linear-gradient(180deg, rgba(0,217,95,0.10), rgba(0,217,95,0.02));
+  border: 1px solid var(--border-lit); border-left: 2px solid var(--accent);
+  border-radius: 3px;
+}
+.pb-perf .pp-main {
+  font-family: var(--font-mono); font-size: 22px; font-weight: 600;
+  color: var(--accent); line-height: 1;
+  letter-spacing: -0.5px;
+  text-shadow: 0 0 18px rgba(0,217,95,0.45);
+  min-width: 62px;
+}
+.pb-perf .pp-side {
+  display: grid; grid-template-columns: auto auto; gap: 1px 8px;
+  font-size: 9.5px; align-items: baseline;
+}
+.pb-perf .pp-k {
+  font-family: var(--font-mono); color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.pb-perf .pp-v { font-family: var(--font-mono); color: var(--text); font-size: 11px; }
+
+/* A wrong or stray strike. Declared after .gong.playing so the red wins
+   when a gong is both lit as the target and struck with the wrong mallet. */
+.gong.miss { animation: gong-miss 320ms ease-out; }
+@keyframes gong-miss {
+  0%   { box-shadow: 0 0 0 3px rgba(255,94,77,1), 0 0 10px 3px rgba(255,94,77,0.7); }
+  100% { box-shadow: 0 0 0 0 rgba(255,94,77,0), 0 0 0 0 rgba(255,94,77,0); }
+}
+
+/* ------------------------------------------------ performance report */
+.perf-report {
+  position: fixed; inset: 0; z-index: 60;
+  display: flex; align-items: center; justify-content: center;
+  padding: 26px 18px;
+  background: rgba(3, 5, 4, 0.82);
+  backdrop-filter: blur(7px) saturate(120%);
+  -webkit-backdrop-filter: blur(7px) saturate(120%);
+  opacity: 0; transition: opacity 0.22s ease;
+  overflow-y: auto;
+}
+/* `display: flex` beats the UA's [hidden] rule, and a transparent overlay
+   that still swallows clicks would take the whole page down with it. */
+.perf-report[hidden] { display: none; }
+.perf-report.open { opacity: 1; }
+.pr-card {
+  width: min(680px, 100%);
+  background:
+    linear-gradient(180deg, rgba(0,217,95,0.07), transparent 180px),
+    linear-gradient(180deg, var(--panel) 0%, var(--bg-2) 100%);
+  border: 1px solid var(--border-lit);
+  border-top: 2px solid var(--accent);
+  border-radius: 5px;
+  padding: 24px 26px 22px;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.7), 0 0 40px rgba(0,217,95,0.09);
+  transform: translateY(14px) scale(0.985);
+  transition: transform 0.32s cubic-bezier(0.2,0.7,0.2,1);
+}
+.perf-report.open .pr-card { transform: none; }
+.pr-head { margin-bottom: 20px; }
+.pr-tag {
+  font-family: var(--font-mono); font-size: 9px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 2.4px; color: var(--accent);
+}
+.pr-card h3 {
+  margin: 5px 0 4px;
+  font-family: var(--font-display); font-size: 24px; font-weight: 600;
+  color: var(--text); letter-spacing: 0.2px;
+}
+.pr-sub { font-size: 12px; color: var(--muted); }
+.pr-sub .mono { font-family: var(--font-mono); color: var(--text); }
+
+.pr-score { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+.pr-gauge {
+  --pct: 0;
+  position: relative;
+  width: 148px; height: 148px; flex: none;
+  border-radius: 50%;
+  background:
+    conic-gradient(var(--accent) calc(var(--pct) * 1%), rgba(0,217,95,0.10) 0);
+  box-shadow: 0 0 34px rgba(0,217,95,0.20);
+  display: grid; place-items: center;
+  animation: gauge-in 0.6s cubic-bezier(0.2,0.7,0.2,1) both 0.1s;
+}
+@keyframes gauge-in { from { transform: scale(0.9); opacity: 0; } }
+.pr-gauge-in {
+  width: 118px; height: 118px; border-radius: 50%;
+  background: radial-gradient(circle at 50% 35%, var(--panel-2), var(--bg));
+  border: 1px solid var(--border);
+  display: grid; place-content: center; justify-items: center; gap: 2px;
+}
+.pr-pct {
+  font-size: 33px; font-weight: 600; color: var(--accent);
+  letter-spacing: -1px; line-height: 1;
+  text-shadow: 0 0 22px rgba(0,217,95,0.4);
+}
+.pr-pct-k { font-size: 10.5px; color: var(--muted); letter-spacing: 1px; }
+.pr-grade { flex: 1; min-width: 240px; }
+.pr-grade-th {
+  font-family: var(--font-display); font-size: 27px; color: var(--high);
+  line-height: 1.2;
+}
+.pr-grade-en {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 2.4px;
+  color: var(--muted); margin-bottom: 12px;
+}
+.pr-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.ps {
+  background: var(--panel-2); border: 1px solid var(--border);
+  border-radius: 3px; padding: 7px 9px;
+  display: flex; flex-direction: column; gap: 1px;
+}
+.ps-k { font-size: 9.5px; color: var(--muted); letter-spacing: 0.4px; }
+.ps-v { font-family: var(--font-mono); font-size: 16px; font-weight: 600; }
+.ps-v.ok  { color: var(--accent); }
+.ps-v.bad { color: var(--red); }
+
+.pr-detail {
+  margin-top: 18px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1px; background: var(--border); border: 1px solid var(--border);
+  border-radius: 3px; overflow: hidden;
+}
+.pd { background: var(--bg-2); padding: 9px 11px; }
+.pd-k { display: block; font-size: 9.5px; color: var(--muted); letter-spacing: 0.4px; }
+.pd-v { display: block; font-size: 13px; color: var(--text); }
+.pd-v .dim { color: var(--dim); font-size: 11px; }
+
+.pr-lines-wrap { margin-top: 18px; }
+.pr-lines-head { display: flex; justify-content: space-between; align-items: baseline; }
+.pr-lines-key { font-size: 9.5px; color: var(--dim); }
+.pr-lines {
+  display: flex; gap: 3px; align-items: flex-end;
+  margin-top: 8px; padding: 10px 10px 6px;
+  background: #040806; border: 1px solid var(--border); border-radius: 3px;
+  overflow-x: auto; scrollbar-width: thin;
+}
+/* Bars stay bar-shaped whether the run covered four บรรทัด or fifty-four:
+   they shrink to fit and scroll past that, but never stretch into slabs. */
+.pl {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  flex: 0 1 26px; min-width: 9px; max-width: 26px;
+}
+.pl-bar {
+  width: 100%; min-width: 8px; height: 62px;
+  background: rgba(0,217,95,0.07);
+  border-radius: 1px;
+  display: flex; align-items: flex-end;
+}
+.pl-bar i {
+  display: block; width: 100%;
+  background: linear-gradient(180deg, var(--high), var(--accent));
+  border-radius: 1px;
+  animation: pl-grow 0.5s cubic-bezier(0.2,0.7,0.2,1) both 0.2s;
+}
+.pl-bar i.warn { background: linear-gradient(180deg, #f0c46a, var(--gold)); }
+.pl-bar i.bad  { background: linear-gradient(180deg, #ff8b7d, var(--red)); }
+@keyframes pl-grow { from { height: 0 !important; } }
+.pl-no { font-family: var(--font-mono); font-size: 8.5px; color: var(--dim); }
+
+.pr-actions { display: flex; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
+
+@media (max-width: 620px) {
+  .pr-card { padding: 18px 16px; }
+  .pr-score { gap: 16px; }
+  .pr-gauge { width: 116px; height: 116px; }
+  .pr-gauge-in { width: 92px; height: 92px; }
+  .pr-pct { font-size: 26px; }
+  .pr-stats { grid-template-columns: repeat(2, 1fr); }
+}
 
 /* The current วรรค above the ring — same cells as the score reader, at
    reading size for someone sitting at the instrument. */
@@ -1090,10 +1279,23 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
            strikes a gong. -->
       <div class="play-bar">
         <div class="pb-head">
-          <span class="pb-tag">Tutorial</span>
+          <span class="pb-tag" id="pbTag">Tutorial</span>
           <span class="pb-song" id="pbSong">—</span>
         </div>
+        <div class="pill-group pb-mode" id="pbModeGroup">
+          <button class="btn active" type="button" data-mode="practice"
+                  title="ซ้อมทีละวรรค หยุด/ย้อนได้ตามใจ">ซ้อม</button>
+          <button class="btn" type="button" data-mode="perf"
+                  title="เล่นรวดเดียวจบเพลง แล้วสรุปผลว่าตีถูกกี่เปอร์เซ็นต์">บรรเลง</button>
+        </div>
         <div class="pb-pos" id="pbPos">—</div>
+        <div class="pb-perf" id="pbPerf" hidden>
+          <div class="pp-main"><span id="pbPerfPct">—</span></div>
+          <div class="pp-side">
+            <span class="pp-k">ต่อเนื่อง</span><span class="pp-v" id="pbPerfCombo">0</span>
+            <span class="pp-k">โน้ต</span><span class="pp-v" id="pbPerfCount">0 / 0</span>
+          </div>
+        </div>
         <div class="pb-btns">
           <button class="btn" id="pbPrev" type="button" title="ถอย 1 วรรค">−วรรค</button>
           <button class="btn primary" id="pbPlay" type="button">Play</button>
@@ -1115,6 +1317,8 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
         </div>
       </div>
     </div>
+
+    <p class="help-note"><strong>ซ้อม</strong> = ตามทีละวรรค หยุด/ย้อนได้ · <strong>บรรเลง</strong> = เล่นรวดเดียวจนจบเพลง โดยมีฉิ่งกับไฟที่ลูกฆ้องเป็นตัวนำ เสียงฆ้องปิดไว้ให้ตีเอง ทุกไม้ที่ตีจะถูกตัดสินกับโน้ตจริงทั้งเสียงและจังหวะ แล้วสรุปเป็นเปอร์เซ็นต์ตอนจบ (ระหว่างบรรเลงจะไม่บันทึกลงกริด และล็อกความเร็วไว้ · ปรับกรอบความเข้มงวดได้ที่แถบ Tutorial)</p>
 
     <p class="help-note">คลิก/แตะ = ตีปกติ (บันทึกลงกริดเมื่อ Record เปิด) · <strong>กดค้างแล้วลากผ่านลูกฆ้อง = กวาด</strong> — เริ่มจากตำแหน่งไหน ทิศทางไหนก็ได้ ใช้หลายนิ้วพร้อมกันได้ ลากเร็วเสียงจะเบาลงเหมือนไม้ลูบผ่านจริง (เสียงกวาดไม่ถูกบันทึกลงกริด)</p>
   </section>
@@ -1150,6 +1354,14 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
         <span class="control-label">Tempo</span>
         <input type="number" id="tutBpm" class="tempo-input" min="30" max="300" value="65">
         <span class="control-label">bpm</span>
+      </div>
+      <div class="control-group">
+        <span class="control-label" title="กรอบเวลาที่ยังนับว่าตีตรงจังหวะ">ความเข้มงวด</span>
+        <div class="pill-group" id="perfLevelGroup">
+          <button class="btn" type="button" data-level="easy">ง่าย</button>
+          <button class="btn active" type="button" data-level="normal">ปกติ</button>
+          <button class="btn" type="button" data-level="strict">เข้ม</button>
+        </div>
       </div>
       <div class="control-group" style="margin-left:auto;">
         <button class="btn primary" id="tutPlayBtn">Play</button>
@@ -1279,6 +1491,48 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
     </div>
   </section>
 </main>
+
+<!-- Performance report — shown when a บรรเลง run ends -->
+<div class="perf-report" id="perfReport" hidden role="dialog" aria-modal="true"
+     aria-labelledby="perfReportTitle">
+  <div class="pr-card">
+    <div class="pr-head">
+      <span class="pr-tag">Performance report</span>
+      <h3 id="perfReportTitle">ผลการบรรเลง</h3>
+      <div class="pr-sub" id="perfHeadline"></div>
+    </div>
+
+    <div class="pr-score">
+      <div class="pr-gauge" id="perfGauge">
+        <div class="pr-gauge-in">
+          <span class="pr-pct mono" id="perfPct">0%</span>
+          <span class="pr-pct-k">ตีถูก</span>
+        </div>
+      </div>
+      <div class="pr-grade">
+        <div class="pr-grade-th" id="perfGrade">—</div>
+        <div class="pr-grade-en mono" id="perfGradeEn">—</div>
+        <div class="pr-stats" id="perfStats"></div>
+      </div>
+    </div>
+
+    <div class="pr-detail" id="perfDetail"></div>
+
+    <div class="pr-lines-wrap">
+      <div class="pr-lines-head">
+        <span class="control-label">ความแม่นยำรายบรรทัด</span>
+        <span class="pr-lines-key mono">0 — 100%</span>
+      </div>
+      <div class="pr-lines" id="perfLines"></div>
+    </div>
+
+    <div class="pr-actions">
+      <button class="btn primary" id="perfAgain" type="button">บรรเลงอีกครั้ง</button>
+      <button class="btn" id="perfWorst" type="button" hidden></button>
+      <button class="btn" id="perfClose" type="button">ปิด</button>
+    </div>
+  </div>
+</div>
 
 <footer>
   © 2026 <a href="https://nuttakitkundum.com">nuttakitkundum.com</a> · ฆ้องวงใหญ่ — Khong Wong Yai
@@ -1887,6 +2141,22 @@ function flashGong(idx, ms = GONG_FLASH_MS) {
   pendingFlash.set(idx, Math.min(ms, pendingFlash.get(idx) ?? Infinity));
 }
 
+// A wrong or stray strike during บรรเลง — red, and short enough to be gone
+// before the next จังหวะ needs the ring back.
+const gongMissTimers = new Array(NUM_GONGS).fill(null);
+function flashGongMiss(idx) {
+  const el = document.querySelector(`.gong[data-idx="${idx}"]`);
+  if (!el) return;
+  if (gongMissTimers[idx]) clearTimeout(gongMissTimers[idx]);
+  el.classList.remove('miss');
+  void el.offsetWidth;
+  el.classList.add('miss');
+  gongMissTimers[idx] = setTimeout(() => {
+    el.classList.remove('miss');
+    gongMissTimers[idx] = null;
+  }, 320);
+}
+
 // Cancel every glow outright, so a stopped run leaves nothing lit.
 function clearGongFlashes() {
   for (let i = 0; i < NUM_GONGS; i++) {
@@ -1929,6 +2199,9 @@ let chordKuPet8Held  = false;   // Ctrl or Cmd → คู่ 8 partner
 function triggerGong(idx) {
   playGong(idx);
   flashGong(idx);
+  // During บรรเลง a strike is a performance, not an edit: it is scored
+  // against the score instead of written into the grid.
+  if (perf.active) { judgePerfStrike(idx); return; }
   if (!state.isRecording) return;
   chordBuffer[state.hand] = idx;
   if (chordTimer === null) {
@@ -2067,6 +2340,14 @@ function typeNote(hand, baseIdx) {
   if (rightNote !== null && rightNote !== leftNote) playGong(rightNote);
   if (leftNote  !== null) flashGong(leftNote);
   if (rightNote !== null && rightNote !== leftNote) flashGong(rightNote);
+
+  // During บรรเลง every note produced is judged — a คู่ 8 / คู่ 4 counts as
+  // the two strikes it really is — and nothing is written to the grid.
+  if (perf.active) {
+    if (leftNote  !== null) judgePerfStrike(leftNote);
+    if (rightNote !== null && rightNote !== leftNote) judgePerfStrike(rightNote);
+    return;
+  }
 
   if (!state.isRecording) return;
 
@@ -2523,6 +2804,7 @@ let playbackActiveMasters = [];
 function startPlayback() {
   if (state.isPlaying) return;
   stopTutorialPlayback(true);   // never run both engines at once
+  perfMaybeFinish(false);
   const ctx = ac();
   state.isPlaying = true;
   state.playStart = ctx.currentTime + 0.12; // small lead-in
@@ -2760,6 +3042,7 @@ function compileSong(song) {
       slot.n.forEach((g, k) => {
         fire[i].push({
           g,
+          hand,                                   // for the performance report
           off: skew - (n - 1 - k) * SABAT_STEP,   // last note sits on the beat
           v: k === n - 1 ? 1 : 0.85,              // the grace notes are lighter
         });
@@ -2918,6 +3201,7 @@ function renderSongMeta() {
 
 function setTutorialSong(id) {
   const song = SONGS.find(s => s.id === id) || SONGS[0];
+  perfMaybeFinish(false);
   stopTutorialPlayback(true);
   tutorial.resumeSlot = 0;
   tutorial.compiled = compileSong(song);
@@ -2938,6 +3222,10 @@ const TUT_TICK_MS     = 40;
 
 function startTutorialPlayback(fromSlot = 0) {
   if (!tutorial.compiled) return;
+  // Any other route back to Play — a ห้อง head, the score panel, a tempo
+  // re-anchor — abandons a บรรเลง that is under way and scores what was
+  // played. startPerformance() sets `starting` so its own restart is exempt.
+  if (!perf.starting) perfMaybeFinish(false);
   primeAudio();
   stopTutorialPlayback(true);
   if (state.isPlaying) stopPlayback(true);   // never run both engines at once
@@ -3015,12 +3303,16 @@ function tutorialScheduler() {
 
   if (tutorial.nextSlot >= totalSlots) {
     const endsAt = tutorial.startTime + (totalSlots - tutorial.fromSlot) * dur;
-    if (ctx.currentTime > endsAt + 0.3) stopTutorialPlayback(false);
+    if (ctx.currentTime > endsAt + 0.3) {
+      finishPerformanceAfterTail();
+      stopTutorialPlayback(false);
+    }
   }
 }
 
 function tutorialTick() {
   if (!tutorial.playing) return;
+  perfResolveMisses();
   const ctx = ac();
   const dur = tutSlotDur();
   // Highlight where the music is HEARD, not where it is being rendered.
@@ -3032,7 +3324,11 @@ function tutorialTick() {
     paintTutorialSlot(slot);
     tutorial.shownSlot = slot;
   }
-  if (slot >= total) { stopTutorialPlayback(false); return; }
+  if (slot >= total) {
+    finishPerformanceAfterTail();   // the last note's window is still open
+    stopTutorialPlayback(false);
+    return;
+  }
   requestAnimationFrame(tutorialTick);
 }
 
@@ -3120,7 +3416,375 @@ function stopTutorialPlayback(cutAudio = false) {
   if (tutorial.posEl && tutorial.compiled) {
     tutorial.posEl.textContent = '— / ' + tutorial.compiled.totalHongs;
   }
+  // Whatever stopped the run — a button, a song change, the score panel —
+  // a บรรเลง cannot outlive its accompaniment: nothing would resolve the
+  // remaining notes. The end-of-song path arms `tailTimer` first and is
+  // therefore left alone to finish scoring the last window.
+  if (perf.active && !perf.tailTimer) endPerformance(false);
   renderPlayBar();
+}
+
+// =====================================================================
+// Performance mode — บรรเลง
+// =====================================================================
+// The tutorial run becomes the accompanist: ฉิ่ง keeps time, the ring
+// lights the gong to strike, and the player supplies every note to the
+// end of the song. Each strike is judged against the score's own event
+// list — the same times the tutorial would have played — and the run
+// closes with a report card.
+//
+// Judging is offline-shaped but runs live: every expected strike is an
+// entry that starts `pending` and resolves exactly once, to hit / wrong
+// (right moment, wrong gong) / miss (window elapsed untouched). A strike
+// that lands nowhere near a pending entry is an extra (ตีเกิน) — counted,
+// but it consumes nothing, so a nervous double-tap can't eat the note it
+// was aiming for.
+
+// Windows are a fraction of one จังหวะ so they scale with tempo, capped in
+// absolute time so a very slow run doesn't turn into a free-for-all.
+const PERF_LEVELS = {
+  easy:   { label: 'ง่าย',  hit: [0.90, 0.45], perfect: [0.35, 0.18] },
+  normal: { label: 'ปกติ',  hit: [0.60, 0.30], perfect: [0.22, 0.11] },
+  strict: { label: 'เข้ม',  hit: [0.40, 0.18], perfect: [0.13, 0.06] },
+};
+
+const perf = {
+  mode: false,        // performance mode is selected in the transport
+  active: false,      // a scored run is under way
+  starting: false,    // re-entrancy guard: our own playback restart
+  level: 'normal',
+  hitWin: 0.14,       // seconds either side that still counts as the note
+  perfectWin: 0.05,
+  expected: [],       // every strike the score asks for, sorted by time
+  cursor: 0,          // first entry not yet resolved
+  total: 0,
+  hits: 0, perfect: 0, wrong: 0, missed: 0, extra: 0,
+  judged: 0,          // entries resolved so far — the report's denominator
+  combo: 0, bestCombo: 0,
+  dtSum: 0,           // signed timing error of hits, for the bias readout
+  lineStats: [],      // per บรรทัด → { judged, hits }
+  hudDirty: false,
+  tailTimer: null,    // waiting out the last note's window before scoring
+};
+
+function perfWindows() {
+  const dur = tutSlotDur();
+  const lv  = PERF_LEVELS[perf.level] || PERF_LEVELS.normal;
+  perf.hitWin     = Math.min(dur * lv.hit[0],     lv.hit[1]);
+  perf.perfectWin = Math.min(dur * lv.perfect[0], lv.perfect[1]);
+}
+
+// Every strike in the score from `fromSlot` on, in the ctx time it will be
+// HEARD (audio latency included) — that is the instant the player is
+// reacting to, so it is the instant their own strike is measured against.
+function buildExpected(fromSlot) {
+  const { fire, totalSlots } = tutorial.compiled;
+  const dur = tutSlotDur();
+  const lat = audioLatencyMs() / 1000;
+  const out = [];
+  for (let s = fromSlot; s < totalSlots; s++) {
+    for (const ev of fire[s]) {
+      const t = tutorial.startTime + (s - fromSlot) * dur + ev.off * dur + lat;
+      // คู่ 8 voiced across both hands can put the same gong at the same
+      // instant twice; one strike is all a player can give it.
+      if (out.some(o => o.g === ev.g && Math.abs(o.t - t) < 1e-6)) continue;
+      out.push({ g: ev.g, hand: ev.hand, slot: s, t, state: 'pending', dt: 0 });
+    }
+  }
+  out.sort((a, b) => a.t - b.t);
+  return out;
+}
+
+function startPerformance() {
+  if (!tutorial.compiled) return;
+  perfMaybeFinish(false);
+
+  // Silent by default: the point is to hear yourself. ฉิ่ง and the ring
+  // lights stay on as the time reference.
+  tutorial.muted = true;
+  syncSoundPills();
+
+  perf.starting = true;
+  startTutorialPlayback(0);       // a บรรเลง always runs the whole song
+  perf.starting = false;
+  if (!tutorial.playing) return;  // playback refused to start — nothing to judge
+
+  perfWindows();
+  perf.expected  = buildExpected(0);
+  perf.cursor    = 0;
+  perf.total     = perf.expected.length;
+  perf.hits = perf.perfect = perf.wrong = perf.missed = perf.extra = 0;
+  perf.judged = perf.combo = perf.bestCombo = 0;
+  perf.dtSum  = 0;
+  perf.lineStats = Array.from(
+    { length: Math.ceil(tutorial.compiled.totalSlots / SLOTS_PER_VAK) },
+    () => ({ judged: 0, hits: 0 }));
+
+  // A half-typed chord from before the run must not commit into the grid.
+  if (chordTimer !== null) { clearTimeout(chordTimer); chordTimer = null; }
+  chordBuffer = { left: null, right: null };
+
+  perf.active = true;
+  document.body.classList.add('perf-running');
+  renderPerfHud();
+  renderPlayBar();
+}
+
+// Per-บรรทัด tally. Only notes the run actually reached count, so a run
+// stopped mid-line doesn't score its unplayed remainder as failures.
+function perfCountLine(e, hit) {
+  const st = perf.lineStats[Math.floor(e.slot / SLOTS_PER_VAK)];
+  if (!st) return;
+  st.judged++;
+  if (hit) st.hits++;
+}
+
+// Judge one strike. Called for every note the player actually produces —
+// keyboard or mallet — instead of the recording path.
+function judgePerfStrike(g) {
+  if (!perf.active) return;
+  const now = ac().currentTime;
+  const W = perf.hitWin;
+
+  let exact = -1, exactD = Infinity;
+  let near  = -1, nearD  = Infinity;
+  for (let i = perf.cursor; i < perf.expected.length; i++) {
+    const e = perf.expected[i];
+    if (e.t > now + W) break;
+    if (e.state !== 'pending') continue;
+    const d = Math.abs(e.t - now);
+    if (d > W) continue;
+    if (e.g === g) { if (d < exactD) { exactD = d; exact = i; } }
+    else if (d < nearD) { nearD = d; near = i; }
+  }
+
+  if (exact >= 0) {
+    const e = perf.expected[exact];
+    e.dt = now - e.t;                       // + = ช้าไป, − = เร็วไป
+    e.state = Math.abs(e.dt) <= perf.perfectWin ? 'perfect' : 'hit';
+    perf.hits++;
+    if (e.state === 'perfect') perf.perfect++;
+    perf.dtSum += e.dt;
+    perf.judged++;
+    perf.combo++;
+    if (perf.combo > perf.bestCombo) perf.bestCombo = perf.combo;
+    perfCountLine(e, true);
+  } else if (near >= 0) {
+    // Right moment, wrong gong — the note it displaced is spent.
+    perf.expected[near].state = 'wrong';
+    perfCountLine(perf.expected[near], false);
+    perf.wrong++;
+    perf.judged++;
+    perf.combo = 0;
+    flashGongMiss(g);
+  } else {
+    perf.extra++;
+    flashGongMiss(g);
+  }
+  perf.hudDirty = true;
+}
+
+// Anything whose window has fully elapsed and was never touched is a miss.
+// Driven from the playback frame loop, so it costs nothing when idle.
+function perfResolveMisses() {
+  if (!perf.active) return;
+  const cutoff = ac().currentTime - perf.hitWin;
+  while (perf.cursor < perf.expected.length) {
+    const e = perf.expected[perf.cursor];
+    if (e.state === 'pending') {
+      if (e.t >= cutoff) break;
+      e.state = 'miss';
+      perfCountLine(e, false);
+      perf.missed++;
+      perf.judged++;
+      perf.combo = 0;
+      perf.hudDirty = true;
+    }
+    perf.cursor++;
+  }
+  if (perf.hudDirty) renderPerfHud();
+}
+
+// `complete` = the song reached its end rather than being cut short.
+function endPerformance(complete) {
+  if (!perf.active) return;
+  perf.active = false;
+  document.body.classList.remove('perf-running');
+  // Whatever was still pending when the run stopped was never played, but
+  // it was never asked for either — leave it out of the denominator.
+  renderPerfHud();
+  renderPlayBar();
+  if (perf.judged > 0) showPerfReport(complete);
+}
+
+function perfMaybeFinish(complete) {
+  if (perf.tailTimer) { clearTimeout(perf.tailTimer); perf.tailTimer = null; }
+  if (perf.active) endPerformance(complete);
+}
+
+// The last note of the song still has its whole window open when the score
+// runs out, so a run that reaches the end waits it out before scoring —
+// otherwise the final strikes are dropped from the count instead of judged.
+function finishPerformanceAfterTail() {
+  if (!perf.active || perf.tailTimer) return;
+  perf.tailTimer = setTimeout(() => {
+    perf.tailTimer = null;
+    perfResolveMisses();
+    endPerformance(true);
+  }, (perf.hitWin + 0.12) * 1000);
+}
+
+// ------------------------------------------------------------ live HUD
+function renderPerfHud() {
+  perf.hudDirty = false;
+  const box = document.getElementById('pbPerf');
+  if (!box) return;
+  box.hidden = !perf.mode;
+  if (!perf.mode) return;
+  const pct = perf.judged ? Math.round(perf.hits / perf.judged * 100) : 0;
+  document.getElementById('pbPerfPct').textContent =
+    perf.active || perf.judged ? pct + '%' : '—';
+  document.getElementById('pbPerfCombo').textContent = perf.combo;
+  document.getElementById('pbPerfCount').textContent =
+    perf.judged + ' / ' + (perf.total || tutorialExpectedCount());
+}
+
+// How many strikes the whole song asks for — shown before a run starts.
+function tutorialExpectedCount() {
+  if (!tutorial.compiled) return 0;
+  return tutorial.compiled.fire.reduce((n, evs) => n + evs.length, 0);
+}
+
+function perfGrade(pct) {
+  if (pct >= 95) return { th: 'ยอดเยี่ยม',   en: 'excellent' };
+  if (pct >= 85) return { th: 'ดีมาก',       en: 'very good' };
+  if (pct >= 70) return { th: 'ดี',          en: 'good' };
+  if (pct >= 50) return { th: 'พอใช้',       en: 'fair' };
+  return          { th: 'ต้องซ้อมอีก',      en: 'keep practising' };
+}
+
+// --------------------------------------------------------- report card
+function showPerfReport(complete) {
+  const pct     = Math.round(perf.hits / perf.judged * 100);
+  const grade   = perfGrade(pct);
+  const done    = perf.total ? Math.round(perf.judged / perf.total * 100) : 0;
+  const biasMs  = perf.hits ? Math.round(perf.dtSum / perf.hits * 1000) : 0;
+  const biasTh  = Math.abs(biasMs) < 8 ? 'ตรงจังหวะ'
+                : biasMs > 0 ? 'ช้าไป ' + biasMs + ' ms'
+                             : 'เร็วไป ' + Math.abs(biasMs) + ' ms';
+  const song    = tutorial.compiled.song;
+
+  // Per-hand: the two hands fail differently, and the fix differs too.
+  const hand = { right: { total: 0, hits: 0 }, left: { total: 0, hits: 0 } };
+  for (const e of perf.expected) {
+    if (e.state === 'pending') continue;
+    const h = hand[e.hand];
+    if (!h) continue;
+    h.total++;
+    if (e.state === 'hit' || e.state === 'perfect') h.hits++;
+  }
+  const handPct = h => h.total ? Math.round(h.hits / h.total * 100) : 0;
+
+  // Lines that were actually reached, so a run stopped at บรรทัด 6 doesn't
+  // show 48 empty bars scored 0%.
+  let lastSlot = 0;
+  for (const e of perf.expected) {
+    if (e.state !== 'pending' && e.slot > lastSlot) lastSlot = e.slot;
+  }
+  const lastLine = Math.floor(lastSlot / SLOTS_PER_VAK);
+  const reached = perf.lineStats
+    .map((st, i) => ({ ...st, line: i }))
+    .filter(st => st.judged > 0 && st.line <= lastLine);
+  const worst = reached.reduce((w, st) =>
+    (!w || st.hits / st.judged < w.hits / w.judged) ? st : w, null);
+
+  document.getElementById('perfGauge').style.setProperty('--pct', pct);
+  document.getElementById('perfPct').textContent   = pct + '%';
+  document.getElementById('perfGrade').textContent = grade.th;
+  document.getElementById('perfGradeEn').textContent = grade.en;
+  document.getElementById('perfHeadline').innerHTML =
+    `${song.title} · <span class="mono">${tutorial.bpm}</span> bpm · ` +
+    `ความเข้มงวด ${PERF_LEVELS[perf.level].label}` +
+    (complete ? ' · จบเพลง'
+              : ` · หยุดกลางเพลง (เล่นไป <span class="mono">${done}%</span>)`);
+
+  const stats = [
+    ['ตรงโน้ต',    perf.hits,    'ok'],
+    ['ตรงเป๊ะ',    perf.perfect, 'ok'],   // the subset that also landed dead on
+    ['ผิดเสียง',   perf.wrong,   'bad'],
+    ['ตกโน้ต',     perf.missed,  'bad'],
+    ['ตีเกิน',     perf.extra,   'bad'],
+    ['ต่อเนื่องสูงสุด', perf.bestCombo, 'ok'],
+  ];
+  document.getElementById('perfStats').innerHTML = stats.map(([k, v, tone]) =>
+    `<div class="ps"><span class="ps-k">${k}</span>` +
+    `<span class="ps-v ${tone}">${v}</span></div>`).join('');
+
+  document.getElementById('perfDetail').innerHTML = [
+    ['จังหวะเฉลี่ย', biasTh],
+    ['มือขวา',      handPct(hand.right) + '% <span class="dim">(' +
+                    hand.right.hits + '/' + hand.right.total + ')</span>'],
+    ['มือซ้าย',     handPct(hand.left) + '% <span class="dim">(' +
+                    hand.left.hits + '/' + hand.left.total + ')</span>'],
+    ['ตัดสินทั้งหมด', perf.judged + ' / ' + perf.total + ' โน้ต'],
+  ].map(([k, v]) =>
+    `<div class="pd"><span class="pd-k">${k}</span><span class="pd-v mono">${v}</span></div>`
+  ).join('');
+
+  // Colour carries the reading: an all-green strip says nothing about which
+  // บรรทัด needs the work.
+  document.getElementById('perfLines').innerHTML = reached.map(st => {
+    const p = Math.round(st.hits / st.judged * 100);
+    const tone = p >= 85 ? '' : p >= 60 ? ' warn' : ' bad';
+    return `<div class="pl" title="บรรทัด ${st.line + 1} — ${p}% (${st.hits}/${st.judged})">` +
+           `<div class="pl-bar"><i class="${tone.trim()}" style="height:${Math.max(2, p)}%"></i></div>` +
+           `<span class="pl-no">${st.line + 1}</span></div>`;
+  }).join('');
+
+  const again = document.getElementById('perfWorst');
+  if (worst && reached.length > 1) {
+    again.hidden = false;
+    again.textContent = 'ซ้อมบรรทัด ' + (worst.line + 1) +
+                        ' (' + Math.round(worst.hits / worst.judged * 100) + '%)';
+    again.dataset.line = worst.line;
+  } else {
+    again.hidden = true;
+  }
+
+  const overlay = document.getElementById('perfReport');
+  overlay.hidden = false;
+  requestAnimationFrame(() => overlay.classList.add('open'));
+}
+
+function hidePerfReport() {
+  const overlay = document.getElementById('perfReport');
+  overlay.classList.remove('open');
+  setTimeout(() => { overlay.hidden = true; }, 220);
+}
+
+function setPerfMode(on) {
+  perf.mode = on;
+  perfMaybeFinish(false);
+  document.querySelectorAll('#pbModeGroup .btn').forEach(b =>
+    b.classList.toggle('active', (b.dataset.mode === 'perf') === on));
+  document.body.classList.toggle('perf-mode', on);
+  document.getElementById('pbPerf').hidden = !on;
+  document.getElementById('pbTag').textContent = on ? 'Performance' : 'Tutorial';
+  if (on) {
+    tutorial.muted = true;      // hear yourself, not the recording
+    syncSoundPills();
+    // The HUD must not carry the last run's score into the next one.
+    perf.hits = perf.perfect = perf.wrong = perf.missed = perf.extra = 0;
+    perf.judged = perf.combo = perf.bestCombo = perf.total = 0;
+  }
+  perfWindows();
+  renderPerfHud();
+  renderPlayBar();
+}
+
+function syncSoundPills() {
+  document.querySelectorAll('#pbSoundGroup .btn').forEach(b =>
+    b.classList.toggle('active', (b.dataset.sound === 'off') === tutorial.muted));
 }
 
 // ------------------------------------------------------- transport row
@@ -3177,7 +3841,14 @@ function renderPlayBar() {
   document.getElementById('pbPos').innerHTML =
     `บรรทัด <b>${line + 1}</b> · ห้อง <b>${inVak}</b>` +
     `<span class="pb-total"> / ${tutorial.compiled.totalHongs} ห้อง</span>`;
-  document.getElementById('pbPlay').textContent = tutorial.playing ? 'Pause' : 'Play';
+  // บรรเลง runs the song end to end, so there is nothing to pause to and
+  // no วรรค to step through — the same buttons would mean the wrong thing.
+  document.getElementById('pbPlay').textContent = perf.mode
+    ? (perf.active ? 'หยุด' : 'เริ่มบรรเลง')
+    : (tutorial.playing ? 'Pause' : 'Play');
+  for (const id of ['pbPrev', 'pbNext']) {
+    document.getElementById(id).disabled = perf.mode;
+  }
   renderVakStrip();
 }
 
@@ -3254,6 +3925,14 @@ function paintVakCursor(slot) {
 // Tempo lives in two places — beside the instrument and in the score panel —
 // so both inputs move together and a mid-run change re-anchors the same way.
 function setTutorialBpm(v) {
+  // Tempo is locked once a บรรเลง is under way: the whole judged timeline
+  // was laid out against it, and re-anchoring mid-song would score the
+  // player against times they were never given.
+  if (perf.active) {
+    document.getElementById('pbBpm').value  = tutorial.bpm;
+    document.getElementById('tutBpm').value = tutorial.bpm;
+    return;
+  }
   const bpm = Math.max(30, Math.min(300, v || 65));
   document.getElementById('pbBpm').value = bpm;
   document.getElementById('tutBpm').value = bpm;
@@ -3440,8 +4119,10 @@ function init() {
   document.getElementById('tutPlayBtn').addEventListener('click', () => {
     tutorial.playing ? stopTutorialPlayback(true) : startTutorialPlayback(0);
   });
-  document.getElementById('tutStopBtn').addEventListener('click',
-    () => stopTutorialPlayback(true));
+  document.getElementById('tutStopBtn').addEventListener('click', () => {
+    stopTutorialPlayback(true);
+    perfMaybeFinish(false);
+  });
   document.getElementById('tutTopBtn').addEventListener('click', () => {
     document.getElementById('tutScore').scrollTop = 0;
   });
@@ -3449,7 +4130,45 @@ function init() {
   // Transport row above the ring. Pause steps back a วรรค, so Play always
   // resumes from wherever that left the cursor.
   document.getElementById('pbPlay').addEventListener('click', () => {
+    if (perf.mode) {
+      if (perf.active) { stopTutorialPlayback(true); endPerformance(false); }
+      else             startPerformance();
+      return;
+    }
     tutorial.playing ? pauseTutorial() : startTutorialPlayback(tutorial.resumeSlot);
+  });
+  document.querySelectorAll('#pbModeGroup .btn').forEach(btn => {
+    btn.addEventListener('click', () => setPerfMode(btn.dataset.mode === 'perf'));
+  });
+  document.querySelectorAll('#perfLevelGroup .btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      perf.level = btn.dataset.level;
+      document.querySelectorAll('#perfLevelGroup .btn').forEach(b =>
+        b.classList.toggle('active', b === btn));
+      if (!perf.active) perfWindows();   // a run keeps the windows it started with
+    });
+  });
+
+  // Report card
+  document.getElementById('perfClose').addEventListener('click', hidePerfReport);
+  document.getElementById('perfAgain').addEventListener('click', () => {
+    hidePerfReport();
+    startPerformance();
+  });
+  document.getElementById('perfWorst').addEventListener('click', (e) => {
+    const line = +e.currentTarget.dataset.line || 0;
+    hidePerfReport();
+    setPerfMode(false);                        // back to ซ้อม for the fix-up
+    startTutorialPlayback(line * SLOTS_PER_VAK);
+    tutorial.lineEls[line]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+  document.getElementById('perfReport').addEventListener('click', (e) => {
+    if (e.target.id === 'perfReport') hidePerfReport();   // backdrop only
+  });
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !document.getElementById('perfReport').hidden) {
+      hidePerfReport();
+    }
   });
   document.getElementById('pbNotes').addEventListener('click', (e) => {
     tutorial.vakHidden = !tutorial.vakHidden;
