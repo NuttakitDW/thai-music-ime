@@ -3514,13 +3514,13 @@ function perfWindows() {
 // Every strike in the score from `fromSlot` on, in the ctx time it will be
 // HEARD (audio latency included) — that is the instant the player is
 // reacting to, so it is the instant their own strike is measured against.
-// `base` is the ctx time of `fromSlot`; passing 0 yields a timeline relative
-// to the run's start, which บรรเลง shifts onto the player's first ไม้ once
-// they actually play it.
-function buildExpected(fromSlot, base = tutorial.startTime) {
+// `base` is the ctx time of `fromSlot` and `lat` the output latency to add;
+// passing 0 for both yields a plain score-relative timeline, which บรรเลง
+// shifts onto the player's first ไม้ once they actually play it.
+function buildExpected(fromSlot, base = tutorial.startTime,
+                       lat = audioLatencyMs() / 1000) {
   const { fire, totalSlots } = tutorial.compiled;
   const dur = tutSlotDur();
-  const lat = audioLatencyMs() / 1000;
   const out = [];
   for (let s = fromSlot; s < totalSlots; s++) {
     for (const ev of fire[s]) {
@@ -3554,8 +3554,9 @@ function startPerformance() {
   syncSoundPills();
 
   perfWindows();
-  // Times relative to จังหวะ 0; shifted onto the first ไม้ in beginPerformance.
-  perf.expected  = buildExpected(0, 0);
+  // Score-relative times — no anchor, no latency. Both are supplied by
+  // beginPerformance, which is the only moment either of them is known.
+  perf.expected  = buildExpected(0, 0, 0);
   if (!perf.expected.length) return;         // nothing to play, nothing to judge
   perf.cursor    = 0;
   perf.total     = perf.expected.length;
@@ -3594,27 +3595,40 @@ function paintArmCue() {
   }
 }
 
-// A strike while armed. The right gong starts the song; anything else is
-// just a stray note — no penalty, because the run has not begun.
+// A strike while armed starts the song — ANY gong, not only the right one.
+// Requiring the correct gong left the learner with no way forward if they
+// reached for the wrong one: the ring stayed lit, the transport stayed put,
+// and nothing said why. The cue says which gong the score wants; getting it
+// wrong is a note to be judged, not a reason to refuse to begin.
 function judgeArmStrike(g) {
   if (!perf.armed) return;
-  if (!perf.armGongs.includes(g)) { flashGongMiss(g); return; }
   beginPerformance(g, ac().currentTime);
 }
 
 // The first ไม้ has landed: hang the whole judged timeline off it, start the
 // score running from there, and credit the strike that did it.
 function beginPerformance(g, strikeTime) {
-  // expected[] was built against a base of 0 — this is the only place the
-  // run's real start time exists, so every entry moves once, here.
-  const shift = strikeTime - perf.expected[0].t;
+  // expected[] holds score-relative times — this is the only place the run's
+  // real start exists, so every entry moves once, here. The player's ไม้ IS
+  // the first note's time, so every other note follows at its own distance
+  // from it.
+  const rel0  = perf.expected[0].t;
+  const shift = strikeTime - rel0;
   for (const e of perf.expected) e.t += shift;
 
   perf.armed = false;
   paintArmCue();
 
+  // The accompaniment is anchored a further `lat` earlier, so that each note
+  // is HEARD (and its gong lit) exactly on the time it is judged against.
+  // Latency is read HERE, not at arm time: outputLatency reads 0 until the
+  // audio device has actually opened, and on the first run of a session it is
+  // เริ่มบรรเลง that opens it. Reading it too early laid the whole song out
+  // ~25 ms — on Bluetooth, 100–300 ms — off the clock the ring was showing.
+  const anchor = strikeTime - rel0 - audioLatencyMs() / 1000;
+
   perf.starting = true;
-  startTutorialPlayback(0, shift);   // a บรรเลง always runs the whole song
+  startTutorialPlayback(0, anchor);   // a บรรเลง always runs the whole song
   perf.starting = false;
   if (!tutorial.playing) {           // playback refused — drop back to idle
     cancelPerfArm();
@@ -3634,6 +3648,10 @@ function beginPerformance(g, strikeTime) {
     perf.judged++;
     perf.combo = perf.bestCombo = 1;
     perfCountLine(first, true);
+  } else {
+    // Started on the wrong gong: the timing is still theirs, but the note
+    // is judged like any other — ผิดเสียง against the one it displaced.
+    judgePerfStrike(g);
   }
 
   renderPerfHud();
@@ -3965,9 +3983,16 @@ function renderPlayBar() {
     `<span class="pb-total"> / ${tutorial.compiled.totalHongs} ห้อง</span>`;
   // บรรเลง runs the song end to end, so there is nothing to pause to and
   // no วรรค to step through — the same buttons would mean the wrong thing.
-  document.getElementById('pbPlay').textContent = perf.mode
-    ? (perf.active ? 'หยุด' : perf.armed ? 'ยกเลิก' : 'เริ่มบรรเลง')
+  // While armed the button reports a STATE, not an action — the ring is
+  // where the next move is. Labelling it ยกเลิก invited a second press that
+  // silently stood the run down and left the ring dead.
+  const play = document.getElementById('pbPlay');
+  play.textContent = perf.mode
+    ? (perf.active ? 'หยุด' : perf.armed ? 'รอไม้แรก' : 'เริ่มบรรเลง')
     : (tutorial.playing ? 'Pause' : 'Play');
+  play.title = perf.mode && perf.armed
+    ? 'ตีลูกฆ้องที่กะพริบเพื่อเริ่ม — กดปุ่มนี้อีกครั้งเพื่อยกเลิก' : '';
+  play.classList.toggle('primary', !(perf.mode && perf.armed));
   for (const id of ['pbPrev', 'pbNext']) {
     document.getElementById(id).disabled = perf.mode;
   }
