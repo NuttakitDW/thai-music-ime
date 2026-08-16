@@ -402,6 +402,20 @@ section.panel h3 {
   40%  { box-shadow: 0 0 0 4px rgba(0,217,95,0.85), 0 0 34px 14px rgba(0,217,95,0.55); }
   100% { box-shadow: 0 0 0 0 rgba(0,217,95,0), 0 0 0 0 rgba(0,217,95,0); }
 }
+/* บรรเลง is armed and waiting: this gong is the first note of the song, and
+   striking it is what starts the clock. Breathing rather than flashing —
+   it has no tempo to keep yet, so it must not read as a จังหวะ. */
+.gong.cue { animation: gong-cue 1.5s ease-in-out infinite; }
+@keyframes gong-cue {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(224,165,74,0.55), 0 0 10px 2px rgba(224,165,74,0.25); }
+  50%      { box-shadow: 0 0 0 4px rgba(224,165,74,0.95), 0 0 30px 12px rgba(224,165,74,0.5); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gong.cue {
+    animation: none;
+    box-shadow: 0 0 0 3px rgba(224,165,74,0.9), 0 0 22px 8px rgba(224,165,74,0.4);
+  }
+}
 /* The photo already carries the note names painted on the gongs */
 .gong .note-label { display: none; }
 .player-mark {
@@ -1286,7 +1300,7 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
           <button class="btn active" type="button" data-mode="practice"
                   title="ซ้อมทีละวรรค หยุด/ย้อนได้ตามใจ">ซ้อม</button>
           <button class="btn" type="button" data-mode="perf"
-                  title="เล่นรวดเดียวจบเพลง แล้วสรุปผลว่าตีถูกกี่เปอร์เซ็นต์">บรรเลง</button>
+                  title="เล่นรวดเดียวจบเพลง เริ่มนับจังหวะจากไม้แรกที่คุณตี แล้วสรุปผลว่าตีถูกกี่เปอร์เซ็นต์">บรรเลง</button>
         </div>
         <div class="pb-pos" id="pbPos">—</div>
         <div class="pb-perf" id="pbPerf" hidden>
@@ -1318,7 +1332,7 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
       </div>
     </div>
 
-    <p class="help-note"><strong>ซ้อม</strong> = ตามทีละวรรค หยุด/ย้อนได้ · <strong>บรรเลง</strong> = เล่นรวดเดียวจนจบเพลง โดยมีฉิ่งกับไฟที่ลูกฆ้องเป็นตัวนำ เสียงฆ้องปิดไว้ให้ตีเอง ทุกไม้ที่ตีจะถูกตัดสินกับโน้ตจริงทั้งเสียงและจังหวะ แล้วสรุปเป็นเปอร์เซ็นต์ตอนจบ (ระหว่างบรรเลงจะไม่บันทึกลงกริด และล็อกความเร็วไว้ · ปรับกรอบความเข้มงวดได้ที่แถบ Tutorial)</p>
+    <p class="help-note"><strong>ซ้อม</strong> = ตามทีละวรรค หยุด/ย้อนได้ · <strong>บรรเลง</strong> = เล่นรวดเดียวจนจบเพลง โดยมีฉิ่งกับไฟที่ลูกฆ้องเป็นตัวนำ เสียงฆ้องปิดไว้ให้ตีเอง <strong>กดเริ่มบรรเลงแล้วยังไม่เดิน</strong> — ลูกฆ้องโน้ตแรกจะกะพริบรอ พอคุณลงไม้แรกเมื่อไร ทั้งเพลงจึงเริ่มนับจังหวะจากไม้นั้น (ไม้แรกนับเป็นตรงจังหวะเสมอ) ทุกไม้ที่ตีจะถูกตัดสินกับโน้ตจริงทั้งเสียงและจังหวะ แล้วสรุปเป็นเปอร์เซ็นต์ตอนจบ (ระหว่างบรรเลงจะไม่บันทึกลงกริด และล็อกความเร็วไว้ · ปรับกรอบความเข้มงวดได้ที่แถบ Tutorial)</p>
 
     <p class="help-note">คลิก/แตะ = ตีปกติ (บันทึกลงกริดเมื่อ Record เปิด) · <strong>กดค้างแล้วลากผ่านลูกฆ้อง = กวาด</strong> — เริ่มจากตำแหน่งไหน ทิศทางไหนก็ได้ ใช้หลายนิ้วพร้อมกันได้ ลากเร็วเสียงจะเบาลงเหมือนไม้ลูบผ่านจริง (เสียงกวาดไม่ถูกบันทึกลงกริด)</p>
   </section>
@@ -2202,6 +2216,7 @@ function triggerGong(idx) {
   // During บรรเลง a strike is a performance, not an edit: it is scored
   // against the score instead of written into the grid.
   if (perf.active) { judgePerfStrike(idx); return; }
+  if (perf.armed)  { judgeArmStrike(idx);  return; }   // this ไม้ starts the song
   if (!state.isRecording) return;
   chordBuffer[state.hand] = idx;
   if (chordTimer === null) {
@@ -2346,6 +2361,18 @@ function typeNote(hand, baseIdx) {
   if (perf.active) {
     if (leftNote  !== null) judgePerfStrike(leftNote);
     if (rightNote !== null && rightNote !== leftNote) judgePerfStrike(rightNote);
+    return;
+  }
+  // Armed: the first note the score asks for starts the clock. A คู่ that
+  // opens the song is judged as the two strikes it is — one arms it, and
+  // the other is already inside its window by the time it is judged.
+  if (perf.armed) {
+    const notes = [leftNote, rightNote].filter(
+      (n, i, a) => n !== null && a.indexOf(n) === i);
+    for (const n of notes) {
+      if (perf.armed) judgeArmStrike(n);
+      else            judgePerfStrike(n);
+    }
     return;
   }
 
@@ -3220,7 +3247,10 @@ function setTutorialSong(id) {
 const TUT_LOOKAHEAD_S = 0.25;
 const TUT_TICK_MS     = 40;
 
-function startTutorialPlayback(fromSlot = 0) {
+// `anchorTime` overrides the ctx time จังหวะ `fromSlot` falls on. บรรเลง uses
+// it to hang the whole song off the player's own first ไม้ instead of a
+// lead-in they never asked for; everything else takes the default.
+function startTutorialPlayback(fromSlot = 0, anchorTime = null) {
   if (!tutorial.compiled) return;
   // Any other route back to Play — a ห้อง head, the score panel, a tempo
   // re-anchor — abandons a บรรเลง that is under way and scores what was
@@ -3237,7 +3267,8 @@ function startTutorialPlayback(fromSlot = 0) {
   tutorial.playing   = true;
   tutorial.fromSlot  = Math.max(0, Math.min(fromSlot, tutorial.compiled.totalSlots - 1));
   tutorial.nextSlot  = tutorial.fromSlot;
-  tutorial.startTime = ctx.currentTime + 0.12;   // lead-in
+  tutorial.startTime = anchorTime != null ? anchorTime
+                                         : ctx.currentTime + 0.12;   // lead-in
   tutorial.shownSlot = -1;
   tutorial.activeMasters = [];
 
@@ -3433,6 +3464,10 @@ function stopTutorialPlayback(cutAudio = false) {
 // list — the same times the tutorial would have played — and the run
 // closes with a report card.
 //
+// The accompanist waits for the soloist, not the other way round: the run
+// is armed by the button and started by the player's own first ไม้, which
+// the whole timeline is then hung off. Nothing is judged before it.
+//
 // Judging is offline-shaped but runs live: every expected strike is an
 // entry that starts `pending` and resolves exactly once, to hit / wrong
 // (right moment, wrong gong) / miss (window elapsed untouched). A strike
@@ -3451,6 +3486,8 @@ const PERF_LEVELS = {
 const perf = {
   mode: false,        // performance mode is selected in the transport
   active: false,      // a scored run is under way
+  armed: false,       // waiting for the first ไม้ to start the clock
+  armGongs: [],       // the gong(s) that first ไม้ may be
   starting: false,    // re-entrancy guard: our own playback restart
   level: 'normal',
   hitWin: 0.14,       // seconds either side that still counts as the note
@@ -3477,14 +3514,17 @@ function perfWindows() {
 // Every strike in the score from `fromSlot` on, in the ctx time it will be
 // HEARD (audio latency included) — that is the instant the player is
 // reacting to, so it is the instant their own strike is measured against.
-function buildExpected(fromSlot) {
+// `base` is the ctx time of `fromSlot`; passing 0 yields a timeline relative
+// to the run's start, which บรรเลง shifts onto the player's first ไม้ once
+// they actually play it.
+function buildExpected(fromSlot, base = tutorial.startTime) {
   const { fire, totalSlots } = tutorial.compiled;
   const dur = tutSlotDur();
   const lat = audioLatencyMs() / 1000;
   const out = [];
   for (let s = fromSlot; s < totalSlots; s++) {
     for (const ev of fire[s]) {
-      const t = tutorial.startTime + (s - fromSlot) * dur + ev.off * dur + lat;
+      const t = base + (s - fromSlot) * dur + ev.off * dur + lat;
       // คู่ 8 voiced across both hands can put the same gong at the same
       // instant twice; one strike is all a player can give it.
       if (out.some(o => o.g === ev.g && Math.abs(o.t - t) < 1e-6)) continue;
@@ -3495,22 +3535,28 @@ function buildExpected(fromSlot) {
   return out;
 }
 
+// Pressing เริ่มบรรเลง does not start the song — it ARMS it. A learner who
+// has to catch a tempo that is already running loses the first ห้อง before
+// they have found the first gong, and every note after it is judged against
+// a clock they never agreed to. So the run waits, lit on its first note, and
+// the player's own ไม้ is จังหวะ 1: everything downstream is anchored to it.
 function startPerformance() {
   if (!tutorial.compiled) return;
   perfMaybeFinish(false);
+  stopTutorialPlayback(true);
+  primeAudio();                              // the click is the user gesture
+  if (state.isPlaying) stopPlayback(true);
+  if (ching.running) stopChing();
 
   // Silent by default: the point is to hear yourself. ฉิ่ง and the ring
   // lights stay on as the time reference.
   tutorial.muted = true;
   syncSoundPills();
 
-  perf.starting = true;
-  startTutorialPlayback(0);       // a บรรเลง always runs the whole song
-  perf.starting = false;
-  if (!tutorial.playing) return;  // playback refused to start — nothing to judge
-
   perfWindows();
-  perf.expected  = buildExpected(0);
+  // Times relative to จังหวะ 0; shifted onto the first ไม้ in beginPerformance.
+  perf.expected  = buildExpected(0, 0);
+  if (!perf.expected.length) return;         // nothing to play, nothing to judge
   perf.cursor    = 0;
   perf.total     = perf.expected.length;
   perf.hits = perf.perfect = perf.wrong = perf.missed = perf.extra = 0;
@@ -3524,8 +3570,83 @@ function startPerformance() {
   if (chordTimer !== null) { clearTimeout(chordTimer); chordTimer = null; }
   chordBuffer = { left: null, right: null };
 
+  // A คู่ 8 / คู่ 4 opening puts two gongs on จังหวะ 1 — either one may be the
+  // ไม้ that starts the clock, and the other is then judged normally.
+  const t0 = perf.expected[0].t;
+  perf.armGongs = perf.expected
+    .filter(e => Math.abs(e.t - t0) < 1e-6)
+    .map(e => e.g);
+
+  perf.armed = true;
+  setResumeSlot(0);                 // the transport reads บรรทัด 1 · ห้อง 1
+  document.body.classList.add('perf-running');   // tempo is already committed
+  paintArmCue();
+  renderPerfHud();
+  renderPlayBar();
+}
+
+// Light the gong(s) the run is waiting on. Passing nothing clears the cue.
+function paintArmCue() {
+  document.querySelectorAll('.gong.cue').forEach(el => el.classList.remove('cue'));
+  if (!perf.armed) return;
+  for (const g of perf.armGongs) {
+    document.querySelector(`.gong[data-idx="${g}"]`)?.classList.add('cue');
+  }
+}
+
+// A strike while armed. The right gong starts the song; anything else is
+// just a stray note — no penalty, because the run has not begun.
+function judgeArmStrike(g) {
+  if (!perf.armed) return;
+  if (!perf.armGongs.includes(g)) { flashGongMiss(g); return; }
+  beginPerformance(g, ac().currentTime);
+}
+
+// The first ไม้ has landed: hang the whole judged timeline off it, start the
+// score running from there, and credit the strike that did it.
+function beginPerformance(g, strikeTime) {
+  // expected[] was built against a base of 0 — this is the only place the
+  // run's real start time exists, so every entry moves once, here.
+  const shift = strikeTime - perf.expected[0].t;
+  for (const e of perf.expected) e.t += shift;
+
+  perf.armed = false;
+  paintArmCue();
+
+  perf.starting = true;
+  startTutorialPlayback(0, shift);   // a บรรเลง always runs the whole song
+  perf.starting = false;
+  if (!tutorial.playing) {           // playback refused — drop back to idle
+    cancelPerfArm();
+    return;
+  }
+
   perf.active = true;
-  document.body.classList.add('perf-running');
+
+  // จังหวะ 1 was played, by definition, exactly on time.
+  const first = perf.expected.find(
+    e => e.g === g && Math.abs(e.t - strikeTime) < 1e-6);
+  if (first) {
+    first.state = 'perfect';
+    first.dt = 0;
+    perf.hits++;
+    perf.perfect++;
+    perf.judged++;
+    perf.combo = perf.bestCombo = 1;
+    perfCountLine(first, true);
+  }
+
+  renderPerfHud();
+  renderPlayBar();
+}
+
+// Armed but never started — เริ่มบรรเลง pressed, then thought better of.
+function cancelPerfArm() {
+  if (!perf.armed) return;
+  perf.armed = false;
+  perf.armGongs = [];
+  paintArmCue();
+  document.body.classList.remove('perf-running');
   renderPerfHud();
   renderPlayBar();
 }
@@ -3619,6 +3740,7 @@ function endPerformance(complete) {
 
 function perfMaybeFinish(complete) {
   if (perf.tailTimer) { clearTimeout(perf.tailTimer); perf.tailTimer = null; }
+  cancelPerfArm();     // armed but unplayed: nothing to score, just stand down
   if (perf.active) endPerformance(complete);
 }
 
@@ -3844,7 +3966,7 @@ function renderPlayBar() {
   // บรรเลง runs the song end to end, so there is nothing to pause to and
   // no วรรค to step through — the same buttons would mean the wrong thing.
   document.getElementById('pbPlay').textContent = perf.mode
-    ? (perf.active ? 'หยุด' : 'เริ่มบรรเลง')
+    ? (perf.active ? 'หยุด' : perf.armed ? 'ยกเลิก' : 'เริ่มบรรเลง')
     : (tutorial.playing ? 'Pause' : 'Play');
   for (const id of ['pbPrev', 'pbNext']) {
     document.getElementById(id).disabled = perf.mode;
@@ -3925,10 +4047,10 @@ function paintVakCursor(slot) {
 // Tempo lives in two places — beside the instrument and in the score panel —
 // so both inputs move together and a mid-run change re-anchors the same way.
 function setTutorialBpm(v) {
-  // Tempo is locked once a บรรเลง is under way: the whole judged timeline
-  // was laid out against it, and re-anchoring mid-song would score the
-  // player against times they were never given.
-  if (perf.active) {
+  // Tempo is locked once a บรรเลง is under way — and from the moment it is
+  // armed, since the judged timeline is laid out then. Re-anchoring would
+  // score the player against times they were never given.
+  if (perf.active || perf.armed) {
     document.getElementById('pbBpm').value  = tutorial.bpm;
     document.getElementById('tutBpm').value = tutorial.bpm;
     return;
@@ -4131,8 +4253,9 @@ function init() {
   // resumes from wherever that left the cursor.
   document.getElementById('pbPlay').addEventListener('click', () => {
     if (perf.mode) {
-      if (perf.active) { stopTutorialPlayback(true); endPerformance(false); }
-      else             startPerformance();
+      if (perf.active)      { stopTutorialPlayback(true); endPerformance(false); }
+      else if (perf.armed)  cancelPerfArm();
+      else                  startPerformance();
       return;
     }
     tutorial.playing ? pauseTutorial() : startTutorialPlayback(tutorial.resumeSlot);
